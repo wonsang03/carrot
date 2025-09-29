@@ -4,7 +4,7 @@
 /// 서버에서 받은 JSON 데이터를 Product 객체로 변환하거나,
 /// Product 객체를 JSON으로 바꿔서 서버에 보낼 때 사용합니다.
 class Product {
-  final int Product_Number;      // 상품 고유 번호 (서버에서 부여)
+  final String Product_Number;      // 상품 고유 번호 (서버에서 부여)
   final String Product_Name;     // 상품명
   final int Product_Price;       // 가격
   final String Product_Picture;  // 이미지 URL

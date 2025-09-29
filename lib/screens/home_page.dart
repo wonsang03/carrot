@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../models/chat_room.dart';
 import '../widget/bottom_nav_bar.dart';
-import '../widget/product_card.dart';
 import '../services/api_service.dart';
 import '../services/global_state.dart';
 import 'home_screen.dart';
@@ -27,6 +26,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _scaleAnimation;
   List<Product> allProducts = [];
   bool _isLoading = true;
+  // --- 수정된 부분 1: 에러 메시지를 저장할 상태 변수 추가 ---
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -40,15 +41,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     await _loadProducts();
   }
 
+  // --- 수정된 부분 2: API 호출 실패 시 에러 메시지를 설정하도록 변경 ---
   Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null; // 로딩 시작 시 에러 메시지 초기화
+    });
     try {
-      final products = await ApiService.fetchProducts();
-      allProducts = products.isEmpty ? _getDummyProducts() : products;
-    } catch (_) {
-      allProducts = _getDummyProducts();
+      // 서버에서 실제 상품 목록을 요청합니다.
+      allProducts = await ApiService.fetchProducts();
+      // 참고: 서버 응답이 비어있는 경우에 대한 처리를 추가할 수 있습니다.
+      // if (allProducts.isEmpty) {
+      //   setState(() => _errorMessage = '등록된 상품이 없습니다.');
+      // }
+    } catch (e) {
+      // 에러가 발생하면, 더미 데이터를 보여주는 대신 에러 메시지를 상태에 저장합니다.
+      setState(() {
+        _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
+      });
+      allProducts = []; // 에러 발생 시 상품 목록을 비웁니다.
     }
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   void _navigateToSearch() {
@@ -77,25 +92,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
-  List<Product> _getDummyProducts() {
-    return [
-      Product(
-        Product_Number: 1,
-        Product_Name: '아이폰 14 Pro 256GB',
-        Product_Price: 1200000,
-        Product_Picture: 'https://via.placeholder.com/300',
-        Product_Info: '아이폰 14 프로 설명',
-        User_location: '강남구 역삼동',
-        distance: 1.2,
-        latitude: 37.5665,
-        longitude: 126.9780,
-        Product_State: true,
-        User_Number: 1,
-      ),
-      // ... 추가 더미 데이터
-    ];
   }
 
   void _setupAnimation() {
@@ -143,10 +139,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (result == true || result == 'refresh') await _loadProducts();
   }
 
+  // --- 수정된 부분 3: 에러 메시지가 있을 때 화면에 표시하는 로직 추가 ---
   Widget _buildCurrentScreen() {
-    if (_isLoading && _currentIndex == 0) {
+    // 1. 로딩 중일 때 로딩 인디케이터 표시
+    if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+    // 2. 에러 메시지가 있을 때 에러 메시지 표시
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadProducts,
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    // 3. 정상 상태일 때 각 탭에 맞는 화면 표시
     switch (_currentIndex) {
       case 0:
         return HomeScreen(products: allProducts, onProductTap: _onProductTap);

@@ -45,17 +45,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _sendMessage() async {
     final text = _controller.text.trim(); // 입력값 앞뒤 공백 제거
     if (text.isEmpty) return; // 입력이 없으면 무시
+
     setState(() { _isLoading = true; });
-    await ApiService.sendMessage(
-      chatRoomId: widget.chatRoom.Chat_Number, // 채팅방 번호
-      senderId: 1, // 실제 로그인 유저 id 사용
-      message: text,
-    );
-    setState(() {
-      _messages.add(ChatMessage(content: text, isMe: true)); // 내 메시지 추가
-      _isLoading = false;
-    });
-    _controller.clear(); // 입력창 비우기
+
+    try {
+      // --- 수정된 부분: senderId에 숫자 1 대신 문자열 '1'을 전달 ---
+      // chatRoomId는 ChatRoom 모델의 Chat_Number가 String 타입이므로 그대로 사용합니다.
+      await ApiService.sendMessage(
+        chatRoomId: widget.chatRoom.Chat_Number, // 채팅방 번호 (String)
+        senderId: '1', // 실제 로그인 유저 id(String)를 사용해야 함
+        message: text,
+      );
+
+      setState(() {
+        _messages.add(ChatMessage(content: text, isMe: true)); // 내 메시지 추가
+      });
+      _controller.clear(); // 입력창 비우기
+
+    } catch (e) {
+      // 에러 처리
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('메시지 전송 실패: $e'))
+      );
+    } finally {
+      setState(() { _isLoading = false; });
+    }
     // 실제 앱에서는 서버에서 최신 메시지 목록을 다시 받아와야 함
   }
 

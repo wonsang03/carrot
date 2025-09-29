@@ -2,7 +2,7 @@
 
 /// 💬 서버에서 받아오는 채팅방 정보를 담는 클래스입니다.
 class ChatRoom {
-  final int Chat_Number;         // 채팅방 고유 번호
+  final String Chat_Number;         // 채팅방 고유 번호
   final String name;            // 상대방 이름 또는 채팅방 이름//이 친구는 뭐지
   final String lastMessage;     // 마지막 메시지
   final String time;            // 마지막 메시지 시간

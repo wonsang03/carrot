@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/chat_room.dart';           // 채팅방 데이터 모델
 import '../services/api_service.dart';       // 서버와 통신하는 서비스
-import 'chat_detail_screen.dart';            // 채팅 상세 화면
 
 // 📋 채팅 목록 화면 위젯 (하단 탭에서 채팅을 누르면 보임)
 class ChatListScreen extends StatefulWidget {
@@ -19,8 +18,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
-    // 앱이 시작될 때 서버에서 내 채팅방 목록을 받아옴
-    futureChatRooms = ApiService.fetchChatRooms(/*userId*/ 1); // 실제 로그인 유저 id 사용
+    // --- 수정된 부분: ApiService가 String을 받도록 변경되었으므로, 숫자 1을 문자열 '1'로 수정 ---
+    // 실제 앱에서는 로그인된 사용자의 ID(String)를 사용해야 합니다.
+    futureChatRooms = ApiService.fetchChatRooms('1');
   }
 
   @override

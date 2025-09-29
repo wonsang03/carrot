@@ -28,7 +28,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
       // 상품 객체 생성 (Product_Number는 0으로 넣지만 실제로는 서버에서 자동으로 번호를 할당함)
       // 서버에서 자동으로 번호를 할당한다면 0이나 null을 넣어도 괜찮아요.
       final newProduct = Product(
-        Product_Number: 0, // 서버에서 실제 번호를 할당하므로 임시로 0을 넣음
+        Product_Number: "", // 서버에서 실제 번호를 할당하므로 임시로 0을 넣음
         Product_Name: _nameCtrl.text, // 입력한 상품명
         Product_Price: int.tryParse(_priceCtrl.text) ?? 0, // 입력한 가격 (숫자로 변환)
         Product_Picture: _imageCtrl.text, // 입력한 이미지 URL
