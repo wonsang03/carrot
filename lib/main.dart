@@ -21,7 +21,9 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: Colors.grey[50],
       ),
-      home: const HomePage(), // 앱 시작 시 보여줄 첫 화면
+      // ✨ [수정된 부분]
+      // HomePage가 상태를 가지는 StatefulWidget이 되었으므로 const 키워드를 제거합니다.
+      home: HomePage(),
     );
   }
 }

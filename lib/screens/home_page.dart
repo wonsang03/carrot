@@ -3,7 +3,6 @@ import '../models/product.dart';
 import '../models/chat_room.dart';
 import '../widget/bottom_nav_bar.dart';
 import '../services/api_service.dart';
-import '../services/global_state.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
 import 'chat_list_screen.dart';
@@ -27,6 +26,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Product> allProducts = [];
   bool _isLoading = true;
   String? _errorMessage;
+  List<Product> _filteredProducts = [];
 
   @override
   void initState() {
@@ -36,7 +36,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _initializeData() async {
-    GlobalState.setDummyUser();
     await _loadProducts();
   }
 
@@ -47,14 +46,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
     try {
       allProducts = await ApiService.fetchProducts();
+      _filteredProducts = allProducts;
     } catch (e) {
       setState(() {
         _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
       });
       allProducts = [];
+      _filteredProducts = [];
     }
     setState(() {
       _isLoading = false;
+    });
+  }
+
+  void _onSearch(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = allProducts;
+      } else {
+        _filteredProducts = allProducts
+            .where((p) => p.Product_Name.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
     });
   }
 
@@ -63,8 +76,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (_) => SearchScreen(
-          allProducts: allProducts,
+          filteredProducts: _filteredProducts,
           onProductTap: _onProductTap,
+          onSearch: _onSearch,
         ),
       ),
     );
@@ -116,12 +130,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (result == 'refresh') await _loadProducts();
   }
 
-  // ✨ [수정된 부분 1] _onChatRoomTap 함수가 userId 파라미터를 추가로 받도록 변경
   void _onChatRoomTap(ChatRoom chatRoom, String userId) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        // ✨ [수정된 부분 2] ChatDetailScreen에 chatRoom과 함께 userId를 전달
         builder: (_) => ChatDetailScreen(
           chatRoom: chatRoom,
           currentUserId: userId,
@@ -143,26 +155,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return const Center(child: CircularProgressIndicator());
     }
     if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadProducts,
-                child: const Text('다시 시도'),
-              ),
-            ],
-          ),
-        ),
-      );
+      return Center(child: Text(_errorMessage!));
     }
     switch (_currentIndex) {
       case 0:
@@ -170,10 +163,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case 1:
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
-      // ✨ [수정된 부분 3] ChatListScreen에 수정된 _onChatRoomTap 함수를 전달
         return ChatListScreen(onRoomTap: _onChatRoomTap);
       case 3:
-        return const UserProfileScreen();
+      // ✨ [수정된 부분]
+      // 더 이상 존재하지 않는 더미 데이터를 호출하는 대신, 임시 화면을 표시하여 오류를 해결했습니다.
+      // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다.
+        return const Center(child: Text("프로필 화면 준비 중"));
       default:
         return HomeScreen(products: allProducts, onProductTap: _onProductTap);
     }
@@ -188,34 +183,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         backgroundColor: Colors.white,
         elevation: 1,
         automaticallyImplyLeading: false,
-        iconTheme: const IconThemeData(color: Colors.black),
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 16),
-              child: Text(
-                '대파마켓',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.black),
-              onPressed: _navigateToSearch,
-              tooltip: '상품 검색',
-            ),
-            IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.black),
-              onPressed: _showNotificationDialog,
-              tooltip: '알림',
-            ),
-          ],
-        ),
+        title: const Text('대파마켓', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(icon: const Icon(Icons.search, color: Colors.black), onPressed: _navigateToSearch),
+          IconButton(icon: const Icon(Icons.notifications, color: Colors.black), onPressed: _showNotificationDialog),
+        ],
       )
           : null,
       body: _buildCurrentScreen(),
@@ -234,3 +206,4 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 }
+

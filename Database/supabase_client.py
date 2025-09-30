@@ -15,6 +15,7 @@ def _log_req():
 
 @app.after_request
 def _log_resp(resp):
+    # URL 경로는 'request' 객체에 들어있습니다.
     print(f"<<< {resp.status} {request.path} ({resp.content_length} bytes)")
     return resp
 
@@ -29,7 +30,7 @@ def get_products():
             product_data = p
             if product_data.get('User'):
                 product_data['User_Location'] = product_data['User']['User_Location']
-                del product_data['User'] # 불필요한 User 객체 제거
+                del product_data['User']
             products_with_location.append(product_data)
         
         print(f"✅ /products: {len(products_with_location)}개 상품 조회 성공")
@@ -43,9 +44,28 @@ def get_products():
 def create_product():
     try:
         data = request.get_json()
-        res = supabase.table('Product').insert(data).execute()
+
+        product_name = data.get('Product_Name')
+        product_picture = data.get('Product_Picture')
+        product_price = data.get('Product_Price')
+        product_owner_uuid = data.get('Product_Owner') # Flutter에서 보내주는 판매자 UUID
+        
+        if not all([product_name, product_picture, product_price, product_owner_uuid]):
+            return jsonify({"error": "Product_Name, Product_Picture, Product_Price, Product_Owner are required"}), 400
+
+        product_to_insert = {
+            'Product_Name': product_name,
+            'Product_Picture': product_picture,
+            'Product_Price': product_price,
+            'Product_Owner': product_owner_uuid,
+            'Product_State': True # 새 상품은 기본적으로 '판매중' 상태
+        }
+        
+        res = supabase.table('Product').insert(product_to_insert).execute()
+        print(f"✅ /products: 새 상품 등록 성공. 응답: {res.data}")
         return jsonify(res.data[0]), 201
     except Exception as e:
+        print(f"❌ /products 등록 오류: {e}")
         return jsonify({"error": str(e)}), 400
 
 # [GET /products/<product_id>] : 특정 상품 상세 조회
@@ -65,8 +85,6 @@ def get_chat_rooms():
         return jsonify({"error": "userId is required"}), 400
     
     try:
-        # ✨ [수정된 부분] user_id를 기반으로 해당 유저가 포함된 채팅방만 필터링합니다.
-        # Chat_Owner 또는 Chat_User 컬럼에 user_id가 있는 경우를 찾습니다.
         res = supabase.table('Chat').select('*').or_(f'Chat_Owner.eq.{user_id},Chat_User.eq.{user_id}').execute()
         print(f"✅ /chats: 사용자 {user_id}의 채팅방 {len(res.data)}개 조회 성공")
         return jsonify(res.data or [])
@@ -74,15 +92,13 @@ def get_chat_rooms():
         print(f"❌ /chats 오류: {e}")
         return jsonify({"error": str(e)}), 500
 
-# ✨ [새로 추가된 부분] 특정 채팅방의 메시지 목록 조회 API
+# [GET /chats/<chat_id>/messages] : 특정 채팅방의 메시지 목록 조회
 @app.route('/chats/<chat_id>/messages', methods=['GET'])
 def get_messages_in_chat(chat_id):
     if not chat_id:
         return jsonify({"error": "chat_id is required"}), 400
         
     try:
-        # DB의 'Message' 테이블에서 'Message_Chat' 컬럼이 chat_id와 일치하는 모든 메시지를 찾습니다.
-        # 오래된 메시지가 위로 가도록 시간순으로 정렬합니다.
         res = supabase.table('Message').select('*').eq('Message_Chat', chat_id).order('Message_Time', desc=False).execute()
         print(f"✅ /chats/{chat_id}/messages: 메시지 {len(res.data)}개 조회 성공")
         return jsonify(res.data or [])
@@ -90,31 +106,28 @@ def get_messages_in_chat(chat_id):
         print(f"❌ /chats/{chat_id}/messages 오류: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/products/nearby', methods=['GET'])
 def get_nearby_products():
-    return jsonify([]) # 위치 기반 상품 (임시 빈 목록)
+    # TODO: 실제 위치 기반 검색 로직 구현 필요
+    return jsonify([])
 
-# ✨ [수정된 부분] 메시지 전송 API
+# [POST /messages] : 메시지 전송
 @app.route('/messages', methods=['POST'])
 def post_message():
     data = request.get_json()
     
-    # Flutter 앱에서 보낸 데이터 확인
-    chat_id = data.get('chat_room_id')
-    sender_id = data.get('sender_id')
-    message_text = data.get('message')
+    chat_id = data.get('Message_Chat')
+    sender_id = data.get('Message_User')
+    message_text = data.get('Message_Text')
     
     if not all([chat_id, sender_id, message_text]):
-        return jsonify({"error": "chat_room_id, sender_id, message are required"}), 400
+        return jsonify({"error": "Message_Chat, Message_User, Message_Text are required"}), 400
         
     try:
-        # DB 스키마에 맞춰 전송할 데이터 구성
         message_to_insert = {
             'Message_Chat': chat_id,
             'Message_User': sender_id,
             'Message_Text': message_text
-            # Message_Time은 DB에서 자동으로 생성됩니다.
         }
         
         res = supabase.table('Message').insert(message_to_insert).execute()
