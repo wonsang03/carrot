@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, jsonify, request
 from supabase import create_client, Client
 
@@ -25,7 +24,6 @@ def get_products():
     try:
         res = supabase.table('Product').select('*, User!Product_Owner(User_Location)').execute()
         
-
         products_with_location = []
         for p in res.data:
             product_data = p
@@ -66,17 +64,65 @@ def get_chat_rooms():
     if not user_id:
         return jsonify({"error": "userId is required"}), 400
     
-    res = supabase.table('Chat').select('*').execute()
-    return jsonify(res.data or [])
+    try:
+        # ✨ [수정된 부분] user_id를 기반으로 해당 유저가 포함된 채팅방만 필터링합니다.
+        # Chat_Owner 또는 Chat_User 컬럼에 user_id가 있는 경우를 찾습니다.
+        res = supabase.table('Chat').select('*').or_(f'Chat_Owner.eq.{user_id},Chat_User.eq.{user_id}').execute()
+        print(f"✅ /chats: 사용자 {user_id}의 채팅방 {len(res.data)}개 조회 성공")
+        return jsonify(res.data or [])
+    except Exception as e:
+        print(f"❌ /chats 오류: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ✨ [새로 추가된 부분] 특정 채팅방의 메시지 목록 조회 API
+@app.route('/chats/<chat_id>/messages', methods=['GET'])
+def get_messages_in_chat(chat_id):
+    if not chat_id:
+        return jsonify({"error": "chat_id is required"}), 400
+        
+    try:
+        # DB의 'Message' 테이블에서 'Message_Chat' 컬럼이 chat_id와 일치하는 모든 메시지를 찾습니다.
+        # 오래된 메시지가 위로 가도록 시간순으로 정렬합니다.
+        res = supabase.table('Message').select('*').eq('Message_Chat', chat_id).order('Message_Time', desc=False).execute()
+        print(f"✅ /chats/{chat_id}/messages: 메시지 {len(res.data)}개 조회 성공")
+        return jsonify(res.data or [])
+    except Exception as e:
+        print(f"❌ /chats/{chat_id}/messages 오류: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/products/nearby', methods=['GET'])
 def get_nearby_products():
     return jsonify([]) # 위치 기반 상품 (임시 빈 목록)
 
+# ✨ [수정된 부분] 메시지 전송 API
 @app.route('/messages', methods=['POST'])
 def post_message():
-    return jsonify({"status": "message received"}), 201 # 메시지 전송 (임시 성공)
+    data = request.get_json()
+    
+    # Flutter 앱에서 보낸 데이터 확인
+    chat_id = data.get('chat_room_id')
+    sender_id = data.get('sender_id')
+    message_text = data.get('message')
+    
+    if not all([chat_id, sender_id, message_text]):
+        return jsonify({"error": "chat_room_id, sender_id, message are required"}), 400
+        
+    try:
+        # DB 스키마에 맞춰 전송할 데이터 구성
+        message_to_insert = {
+            'Message_Chat': chat_id,
+            'Message_User': sender_id,
+            'Message_Text': message_text
+            # Message_Time은 DB에서 자동으로 생성됩니다.
+        }
+        
+        res = supabase.table('Message').insert(message_to_insert).execute()
+        print(f"✅ /messages: 메시지 전송 성공. 응답: {res.data}")
+        return jsonify(res.data[0]), 201
+    except Exception as e:
+        print(f"❌ /messages 오류: {e}")
+        return jsonify({"error": str(e)}), 500
     
 # ── 서버 실행 ────────────────────────────────────────────────────────────
 if __name__ == '__main__':

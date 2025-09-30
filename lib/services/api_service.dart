@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/product.dart';
 import '../models/chat_room.dart';
+// chat_detail_screen.dart 파일의 경로에 맞게 수정해야 할 수 있습니다.
+import '../screens/chat_detail_screen.dart';
 
 /// 🔥 백엔드와 소통하는 모든 함수들이 여기 있습니다!
 /// 프론트엔드는 이 클래스의 함수들을 호출해서 데이터를 받아옵니다.
@@ -225,6 +227,35 @@ class ApiService {
     }
   }
 
+  /// 🗨️ 특정 채팅방의 모든 메시지를 가져오는 함수 (✨ 새로 추가된 부분)
+  static Future<List<ChatMessage>> fetchMessages(String chatRoomId, String currentUserId) async {
+    try {
+      print('🔄 채팅방 $chatRoomId의 메시지 목록 가져오는 중...');
+      // 백엔드에 "GET /chats/{chat_id}/messages" 와 같은 API가 있다고 가정합니다.
+      // 이 URL은 실제 백엔드 API 엔드포인트에 맞춰야 합니다.
+      final response = await http.get(
+        Uri.parse('$baseUrl/chats/$chatRoomId/messages'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = json.decode(utf8.decode(response.bodyBytes));
+        // JSON 데이터를 ChatMessage 객체 리스트로 변환합니다.
+        // 이 과정에서 현재 로그인한 유저의 ID와 메시지 발신자 ID를 비교하여 isMe 값을 설정합니다.
+        final List<ChatMessage> messages = jsonData
+            .map((json) => ChatMessage.fromJson(json, currentUserId))
+            .toList();
+        print('✅ 메시지 ${messages.length}개 가져오기 성공!');
+        return messages;
+      } else {
+        throw Exception('메시지 목록을 불러올 수 없습니다: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🚨 메시지 목록 오류: $e');
+      throw Exception('서버와 연결할 수 없습니다.');
+    }
+  }
+
   // ========================================
   // 🌍 위치 관련 API 함수들 (지도 화면용)
   // ========================================
@@ -323,4 +354,3 @@ class ApiService {
     }
   }
 }
-

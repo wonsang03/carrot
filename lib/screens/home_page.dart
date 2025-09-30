@@ -26,7 +26,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _scaleAnimation;
   List<Product> allProducts = [];
   bool _isLoading = true;
-  // --- 수정된 부분 1: 에러 메시지를 저장할 상태 변수 추가 ---
   String? _errorMessage;
 
   @override
@@ -41,25 +40,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     await _loadProducts();
   }
 
-  // --- 수정된 부분 2: API 호출 실패 시 에러 메시지를 설정하도록 변경 ---
   Future<void> _loadProducts() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null; // 로딩 시작 시 에러 메시지 초기화
+      _errorMessage = null;
     });
     try {
-      // 서버에서 실제 상품 목록을 요청합니다.
       allProducts = await ApiService.fetchProducts();
-      // 참고: 서버 응답이 비어있는 경우에 대한 처리를 추가할 수 있습니다.
-      // if (allProducts.isEmpty) {
-      //   setState(() => _errorMessage = '등록된 상품이 없습니다.');
-      // }
     } catch (e) {
-      // 에러가 발생하면, 더미 데이터를 보여주는 대신 에러 메시지를 상태에 저장합니다.
       setState(() {
         _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
       });
-      allProducts = []; // 에러 발생 시 상품 목록을 비웁니다.
+      allProducts = [];
     }
     setState(() {
       _isLoading = false;
@@ -124,10 +116,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (result == 'refresh') await _loadProducts();
   }
 
-  void _onChatRoomTap(ChatRoom chatRoom) {
+  // ✨ [수정된 부분 1] _onChatRoomTap 함수가 userId 파라미터를 추가로 받도록 변경
+  void _onChatRoomTap(ChatRoom chatRoom, String userId) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ChatDetailScreen(chatRoom: chatRoom)),
+      MaterialPageRoute(
+        // ✨ [수정된 부분 2] ChatDetailScreen에 chatRoom과 함께 userId를 전달
+        builder: (_) => ChatDetailScreen(
+          chatRoom: chatRoom,
+          currentUserId: userId,
+        ),
+      ),
     );
   }
 
@@ -139,13 +138,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (result == true || result == 'refresh') await _loadProducts();
   }
 
-  // --- 수정된 부분 3: 에러 메시지가 있을 때 화면에 표시하는 로직 추가 ---
   Widget _buildCurrentScreen() {
-    // 1. 로딩 중일 때 로딩 인디케이터 표시
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    // 2. 에러 메시지가 있을 때 에러 메시지 표시
     if (_errorMessage != null) {
       return Center(
         child: Padding(
@@ -168,13 +164,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
       );
     }
-    // 3. 정상 상태일 때 각 탭에 맞는 화면 표시
     switch (_currentIndex) {
       case 0:
         return HomeScreen(products: allProducts, onProductTap: _onProductTap);
       case 1:
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
+      // ✨ [수정된 부분 3] ChatListScreen에 수정된 _onChatRoomTap 함수를 전달
         return ChatListScreen(onRoomTap: _onChatRoomTap);
       case 3:
         return const UserProfileScreen();

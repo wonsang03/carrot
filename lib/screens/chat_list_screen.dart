@@ -1,64 +1,62 @@
 import 'package:flutter/material.dart';
-import '../models/chat_room.dart';           // 채팅방 데이터 모델
-import '../services/api_service.dart';       // 서버와 통신하는 서비스
+import '../models/chat_room.dart';
+import '../services/api_service.dart';
 
-// 📋 채팅 목록 화면 위젯 (하단 탭에서 채팅을 누르면 보임)
 class ChatListScreen extends StatefulWidget {
-  final void Function(ChatRoom) onRoomTap;   // 채팅방 클릭 시 실행할 함수
+  final void Function(ChatRoom, String) onRoomTap;
   const ChatListScreen({Key? key, required this.onRoomTap}) : super(key: key);
 
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-// 채팅 목록 화면의 상태를 관리하는 클래스
 class _ChatListScreenState extends State<ChatListScreen> {
-  late Future<List<ChatRoom>> futureChatRooms; // 서버에서 받아올 채팅방 목록
+  late Future<List<ChatRoom>> futureChatRooms;
+
+  // 실제 Supabase 사용자 UUID (이 값은 이제 고정됩니다)
+  final String myUserId = '8ac96703-506e-40fe-9ad2-5ba09d9896d5';
 
   @override
   void initState() {
     super.initState();
-    // --- 수정된 부분: ApiService가 String을 받도록 변경되었으므로, 숫자 1을 문자열 '1'로 수정 ---
-    // 실제 앱에서는 로그인된 사용자의 ID(String)를 사용해야 합니다.
-    futureChatRooms = ApiService.fetchChatRooms('1');
+
+    // 이제 initState에는 API 호출 코드만 남습니다.
+    futureChatRooms = ApiService.fetchChatRooms(myUserId);
   }
 
   @override
   Widget build(BuildContext context) {
-    // FutureBuilder: 서버에서 데이터를 받아올 때 화면을 자동으로 갱신해주는 위젯
     return FutureBuilder<List<ChatRoom>>(
-      future: futureChatRooms, // 서버에서 받아올 데이터
+      future: futureChatRooms,
       builder: (context, snapshot) {
-        // 1. 데이터를 받아오는 중이면 로딩 표시
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
-          // 2. 에러가 나면 에러 메시지 표시
         } else if (snapshot.hasError) {
-          return Center(child: Text('채팅 목록을 불러올 수 없습니다.'));
-          // 3. 데이터가 정상적으로 오면 채팅방 목록을 화면에 표시
+          // 서버 통신 중 발생하는 실제 에러를 표시합니다.
+          return Center(child: Text('오류가 발생했습니다: ${snapshot.error}'));
         } else if (snapshot.hasData) {
           final chatRooms = snapshot.data!;
-          // 채팅방이 하나도 없으면 안내 메시지 표시
           if (chatRooms.isEmpty) {
-            return const Center(child: Text('채팅방이 없습니다.'));
+            return const Center(child: Text('참여 중인 채팅방이 없습니다.'));
           }
-          // 채팅방이 있으면 리스트로 화면에 표시
+
           return ListView.builder(
-            itemCount: chatRooms.length, // 채팅방 개수만큼 반복
+            itemCount: chatRooms.length,
             itemBuilder: (context, i) {
               final room = chatRooms[i];
               return ListTile(
-                title: Text(room.name),           // 채팅방 이름
-                subtitle: Text(room.lastMessage), // 마지막 메시지
-                onTap: () => widget.onRoomTap(room), // 채팅방 클릭 시 상세 화면으로 이동
+                leading: const Icon(Icons.chat_bubble_outline),
+                title: Text(room.name),
+                subtitle: Text(room.lastMessage),
+                onTap: () => widget.onRoomTap(room, myUserId),
               );
             },
           );
-          // 4. 그 외의 경우 (예상치 못한 상황)
         } else {
-          return const Center(child: Text('알 수 없는 오류'));
+          return const Center(child: Text('채팅방이 없습니다.'));
         }
       },
     );
   }
 }
+
