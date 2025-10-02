@@ -9,7 +9,7 @@ import 'chat_list_screen.dart';
 import 'chat_detail_screen.dart';
 import 'sell_item_screen.dart';
 import 'product_detail_screen.dart';
-import 'user_profile_screen.dart';
+import 'user_profile_screen.dart'; // UserProfileScreen import 확인
 import 'search_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -26,7 +26,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Product> allProducts = [];
   bool _isLoading = true;
   String? _errorMessage;
-  List<Product> _filteredProducts = [];
+
 
   @override
   void initState() {
@@ -46,28 +46,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
     try {
       allProducts = await ApiService.fetchProducts();
-      _filteredProducts = allProducts;
     } catch (e) {
       setState(() {
         _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
       });
       allProducts = [];
-      _filteredProducts = [];
     }
     setState(() {
       _isLoading = false;
-    });
-  }
-
-  void _onSearch(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredProducts = allProducts;
-      } else {
-        _filteredProducts = allProducts
-            .where((p) => p.Product_Name.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
     });
   }
 
@@ -76,9 +62,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (_) => SearchScreen(
-          filteredProducts: _filteredProducts,
+          filteredProducts: allProducts, // SearchScreen에 전체 상품 목록 전달
           onProductTap: _onProductTap,
-          onSearch: _onSearch,
+          // onSearch 콜백 제거
         ),
       ),
     );
@@ -157,20 +143,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_errorMessage != null) {
       return Center(child: Text(_errorMessage!));
     }
+
+    List<Product> productsToShow = allProducts;
+    if (_currentIndex == 0) {
+      productsToShow = allProducts; 
+    }
+
     switch (_currentIndex) {
       case 0:
-        return HomeScreen(products: allProducts, onProductTap: _onProductTap);
+        return HomeScreen(products: productsToShow, onProductTap: _onProductTap);
       case 1:
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
-        return ChatListScreen(onRoomTap: _onChatRoomTap);
-      case 3:
       // ✨ [수정된 부분]
       // 더 이상 존재하지 않는 더미 데이터를 호출하는 대신, 임시 화면을 표시하여 오류를 해결했습니다.
       // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다.
-        return const Center(child: Text("프로필 화면 준비 중"));
+        return ChatListScreen(onRoomTap: _onChatRoomTap);
+      case 3: // "나의 정보" 탭
+        // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다. (이 주석은 유지)
+        // 1. UserProfileScreen에 전달할 임시 사용자 데이터를 만듭니다.
+        //추후 실제 데이터로 전송예정
+        final Map<String, dynamic> tempUserData = {
+          'name': '김당근 (임시 프론트엔드)',
+          'email': 'frontend.dev@example.com',
+          'imageUrl': 'https://placehold.co/200x200/FF9800/FFFFFF?text=🥕',
+          'location': '프론트엔드 임시 마을'
+        };
+        // 2. UserProfileScreen 위젯을 생성하고, 임시 데이터를 'user' 파라미터로 전달합니다.
+        return UserProfileScreen(user: tempUserData);
       default:
-        return HomeScreen(products: allProducts, onProductTap: _onProductTap);
+        return HomeScreen(products: productsToShow, onProductTap: _onProductTap);
     }
   }
 
@@ -206,4 +208,3 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 }
-

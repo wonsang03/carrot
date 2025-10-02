@@ -1,12 +1,14 @@
 // home_screen.dart
 
+// Flutter에서 UI를 만들기 위한 기본 재료들을 가져옵니다.
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../widget/product_card.dart';
 
-class HomeScreen extends StatelessWidget {
-  final List<Product> products; // 상품 목록 데이터
-  final void Function(Product) onProductTap; // 상품 클릭 시 실행할 함수
+// HomeScreen: 외부에서 전달받은 상품 목록을 화면에 표시합니다.
+class HomeScreen extends StatefulWidget {
+  final List<Product> products; // 외부에서 전달받는 '전체' 또는 '필터링된' 상품 목록 데이터입니다.
+  final void Function(Product) onProductTap; // 상품 카드를 눌렀을 때 실행될 함수입니다.
 
   const HomeScreen({
     Key? key,
@@ -15,22 +17,24 @@ class HomeScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar 제거하여 '상품목록' 텍스트가 보이지 않도록 함
-      appBar: null,
-      body: products.isEmpty
-      // 상품이 없을 때 안내 메시지
-          ? const Center(child: Text('등록된 상품이 없습니다.'))
-      // 상품이 있을 때 목록 표시
+      appBar: null, // AppBar를 완전히 제거
+      body: widget.products.isEmpty
+          ? const Center(child: Text('표시할 상품이 없습니다.'))
           : ListView.builder(
-        itemCount: products.length,
+        itemCount: widget.products.length,
         itemBuilder: (context, index) {
-          final product = products[index];
-          // 상품 정보를 카드 형태로 보여줌
+          final product = widget.products[index];
           return ProductCard(
             product: product,
-            onTap: () => onProductTap(product),
+            onTap: () => widget.onProductTap(product),
           );
         },
       ),

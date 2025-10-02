@@ -7,6 +7,7 @@ import '../screens/chat_detail_screen.dart';
 
 class ApiService {
   static const String baseUrl = 'http://127.0.0.1:5000';
+  //static const String baseUrl = 'http://10.0.2.2:5000';
   static const Map<String, String> headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

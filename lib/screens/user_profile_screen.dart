@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 class UserProfileScreen extends StatelessWidget {
   // ✨ [추가] 외부에서 사용자 정보를 전달받기 위한 변수.
   // final User user; // TODO: 실제 User 모델로 교체하세요.
-  final dynamic user; // 지금은 임시로 dynamic 타입을 사용합니다.
+  // (수정) user 변수의 타입을 Map<String, dynamic>으로 명시합니다.
+  final Map<String, dynamic> user;
 
   // ✨ [수정] 생성자에서 user 객체를 필수로 받도록 변경합니다.
   const UserProfileScreen({Key? key, required this.user}) : super(key: key);
@@ -24,14 +25,18 @@ class UserProfileScreen extends StatelessWidget {
             CircleAvatar(
               radius: 50,
               // ✨ [수정] 이제 외부에서 전달받은 user 객체의 정보를 사용합니다.
-              backgroundImage: NetworkImage(user.imageUrl ?? 'https://placehold.co/150x150'),
+              // (수정) user.imageUrl -> user['imageUrl']
+              backgroundImage: NetworkImage(user['imageUrl'] ?? 'https://placehold.co/150x150'),
             ),
             const SizedBox(height: 16),
-            Text(user.name ?? '사용자 이름', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            // (수정) user.name -> user['name']
+            Text(user['name'] ?? '사용자 이름', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(user.email ?? '이메일 정보 없음', style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            // (수정) user.email -> user['email']
+            Text(user['email'] ?? '이메일 정보 없음', style: const TextStyle(fontSize: 16, color: Colors.grey)),
             const SizedBox(height: 8),
-            Text('위치: ${user.location ?? '위치 정보 없음'}'),
+            // (수정) user.location -> user['location']
+            Text('위치: ${user['location'] ?? '위치 정보 없음'}'),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
@@ -47,4 +52,3 @@ class UserProfileScreen extends StatelessWidget {
     );
   }
 }
-
