@@ -27,7 +27,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _errorMessage;
 
-
   @override
   void initState() {
     super.initState();
@@ -57,6 +56,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
+  // 가상의 사용자 프로필 데이터를 준비하는 메서드
+  // TODO: 실제 백엔드 API가 준비되면, 이 메서드 내부를 API 호출로 대체해야 합니다.
+  Map<String, dynamic> _prepareUserProfileData() {
+    // --- 프론트엔드 개발용 임시 사용자 데이터 (백엔드 API 응답 가정) ---
+    final Map<String, dynamic> mockUserData = {
+      'User_ID': 'devUser_01',                      // 사용자 아이디
+      'User_Location': '대파시 개발1동 감자아파트',      // 사용자 위치
+      'User_Number': 'RN-20240517-0001',           // 사용자 고유번호 (예시)
+      'User_Password': 'securePassword123!',       // 사용자 비밀번호 (실제 표시는 마스킹 필요)
+      'User_point': 36.5,                              // 사용자 매너온도 (숫자 타입)
+      'imageUrl': 'https://placehold.co/200x200/3498DB/FFFFFF?text=DEV', // 프로필 이미지 URL (UI 표시용)
+    };
+    // --- 여기까지 임시 데이터 ---
+
+    // (백엔드 연동 시 예시)
+    // try {
+    //   // final Map<String, dynamic> actualUserData = await ApiService.fetchUserProfile();
+    //   // return actualUserData;
+    // } catch (e) {
+    //   // print('사용자 정보 로딩 실패: $e');
+    //   // return {}; // 오류 발생 시 빈 맵 또는 기본값 반환
+    // }
+    return mockUserData; // 현재는 임시 데이터 반환
+  }
+
   void _navigateToSearch() {
     Navigator.push(
       context,
@@ -64,7 +88,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         builder: (_) => SearchScreen(
           filteredProducts: allProducts, // SearchScreen에 전체 상품 목록 전달
           onProductTap: _onProductTap,
-          // onSearch 콜백 제거
         ),
       ),
     );
@@ -122,7 +145,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       MaterialPageRoute(
         builder: (_) => ChatDetailScreen(
           chatRoom: chatRoom,
-          currentUserId: userId,
+          currentUserId: userId, // 이 userId도 실제 로그인 정보와 연동 필요
         ),
       ),
     );
@@ -143,11 +166,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_errorMessage != null) {
       return Center(child: Text(_errorMessage!));
     }
-
-    List<Product> productsToShow = allProducts;
-    if (_currentIndex == 0) {
-      productsToShow = allProducts; 
-    }
+    
+    List<Product> productsToShow = allProducts; // 홈 화면에는 전체 상품을 기본으로 표시
 
     switch (_currentIndex) {
       case 0:
@@ -155,22 +175,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case 1:
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
-      // ✨ [수정된 부분]
+      // ✨ [수정된 부분] -> 이 주석은 ChatListScreen과 UserProfileScreen의 관계에 대한 것이므로 유지
       // 더 이상 존재하지 않는 더미 데이터를 호출하는 대신, 임시 화면을 표시하여 오류를 해결했습니다.
-      // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다.
+      // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다. -> 이 주석의 컨텍스트는 이제 case 3으로 이동
         return ChatListScreen(onRoomTap: _onChatRoomTap);
       case 3: // "나의 정보" 탭
-        // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다. (이 주석은 유지)
-        // 1. UserProfileScreen에 전달할 임시 사용자 데이터를 만듭니다.
-        //추후 실제 데이터로 전송예정
-        final Map<String, dynamic> tempUserData = {
-          'name': '김당근 (임시 프론트엔드)',
-          'email': 'frontend.dev@example.com',
-          'imageUrl': 'https://placehold.co/200x200/FF9800/FFFFFF?text=🥕',
-          'location': '프론트엔드 임시 마을'
-        };
-        // 2. UserProfileScreen 위젯을 생성하고, 임시 데이터를 'user' 파라미터로 전달합니다.
-        return UserProfileScreen(user: tempUserData);
+        // TODO: 로그인 기능 구현 후, _prepareUserProfileData가 실제 사용자 정보를 반환하도록 수정해야 합니다.
+        final Map<String, dynamic> userData = _prepareUserProfileData();
+        return UserProfileScreen(user: userData);
       default:
         return HomeScreen(products: productsToShow, onProductTap: _onProductTap);
     }
