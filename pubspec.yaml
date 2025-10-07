@@ -27,11 +27,14 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
+#패키지 추가
 dependencies:
   flutter:
     sdk: flutter
-    #추가했어용~ http package사용을 위해서~
-  http: ^1.2.1
+    
+  http: ^1.2.1  #HTTP사용을 위한 패키지
+  image_picker: ^1.0.7 #갤러리/카메라 사용을 위한 패키지
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
