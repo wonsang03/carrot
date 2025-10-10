@@ -197,4 +197,4 @@ def post_message():
 
 if __name__ == '__main__':
     # debug=True: 코드 변경 시 서버 자동 재시작 등 개발 편의 기능 활성화
-    app.run(debug=True, host='host주소', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
