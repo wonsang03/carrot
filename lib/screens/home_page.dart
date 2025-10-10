@@ -63,7 +63,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final Map<String, dynamic> mockUserData = {
       'User_ID': 'devUser_01',                      // 사용자 아이디
       'User_Location': '대파시 개발1동 감자아파트',      // 사용자 위치
-      'User_Number': '202405170001',           // 사용자 고유번호 (예시)
+      'User_Number': 202405170001,           // 사용자 고유번호 (int 타입)
       'User_Password': 'securePassword123!',       // 사용자 비밀번호 (실제 표시는 마스킹 필요)
       'User_point': 36.5,                              // 사용자 매너온도 (숫자 타입)
       'imageUrl': 'https://placehold.co/200x200/3498DB/FFFFFF?text=DEV', // 프로필 이미지 URL (UI 표시용)

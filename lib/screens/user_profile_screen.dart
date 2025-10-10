@@ -7,15 +7,13 @@ class UserProfileScreen extends StatelessWidget {
 
   const UserProfileScreen({Key? key, required this.user}) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
     // UserProfileScreen에서 사용할 데이터 추출 (null-safety 및 타입 캐스팅 고려)
     String userId = user['User_ID']?.toString() ?? '사용자 ID 없음';
     String userLocation = user['User_Location']?.toString() ?? '위치 정보 없음';
-    // User_Number를 int로 받고, null일 경우 '정보 없음'으로 처리한 뒤, 화면 표시를 위해 String으로 변환
-    String userNumber = (user['User_Number'] as int?)?.toString() ?? '정보 없음';
-    // String userPassword = user['User_Password']?.toString() ?? ''; // 화면에 표시하지 않으므로 변수 선언 불필요
+    //User_Number은 int값으로 받아오지만 text로 출력할려면 string으로 타입변환해야함.
+    String userNumber = user['User_Number']?.toString() ?? '정보 없음';
     int userPoint = user['User_point'] is int ? user['User_point'] : (user['User_point'] is String ? int.tryParse(user['User_point'] ?? '0') ?? 0 : 0);
     String? imageUrl = user['imageUrl']?.toString();
     // email 필드는 HomePage의 _prepareUserProfileData에서 현재 주석 처리되어 있으므로 여기서는 기본값을 사용하거나 표시하지 않음.
