@@ -1,23 +1,92 @@
+import 'dart:io'; // File 타입을 사용하기 위해 dart:io 라이브러리를 import 합니다.
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // image_picker 패키지를 import 합니다.
+
 // TODO: 나중에 실제 사용자 정보를 담을 User 모델을 import 해야 합니다.
 // import '../models/user.dart';
 
-class UserProfileScreen extends StatelessWidget {
+// 1. StatefulWidget으로 변경합니다.
+//    화면의 상태(사용자가 선택한 이미지)를 기억하고, 상태가 변경될 때 화면을 다시 그려야 하기 때문입니다.
+class UserProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
   const UserProfileScreen({Key? key, required this.user}) : super(key: key);
 
   @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  // 2. 사용자가 선택한 이미지 파일을 저장할 상태 변수를 선언합니다.
+  //    null일 수 있으므로 `File?` 타입으로 선언합니다.
+  File? _pickedImageFile;
+
+  // 3. 이미지 선택(갤러리/카메라) 로직을 처리하는 함수를 만듭니다.
+  Future<void> _pickImage(ImageSource source) async {
+    final imagePicker = ImagePicker();
+    // imagePicker.pickImage를 호출하여 갤러리 또는 카메라를 엽니다.
+    final pickedImage = await imagePicker.pickImage(
+      source: source,      // source 매개변수로 갤러리(ImageSource.gallery) 또는 카메라(ImageSource.camera)를 지정합니다.
+      imageQuality: 80,    // 이미지 품질을 80%로 설정합니다.
+      maxWidth: 600,       // 이미지의 최대 너비를 600px로 제한하여 파일 크기를 줄입니다.
+    );
+
+    // 사용자가 이미지를 선택하지 않고 그냥 창을 닫은 경우, 아무 작업도 하지 않습니다.
+    if (pickedImage == null) {
+      return;
+    }
+
+    // `setState`를 호출하여 선택된 이미지 파일의 경로로 `File` 객체를 생성하고
+    // `_pickedImageFile` 상태를 업데이트합니다. 이로 인해 화면이 다시 그려집니다.
+    setState(() {
+      _pickedImageFile = File(pickedImage.path);
+    });
+
+    // TODO: 여기에서 선택된 이미지 파일(_pickedImageFile)을 실제 서버에 업로드하는 로직을 추가해야 합니다.
+    // 예: await ApiService.uploadProfileImage(_pickedImageFile);
+  }
+
+  // 4. "갤러리" 또는 "카메라" 선택 다이얼로그를 보여주는 함수를 만듭니다.
+  void _showImageSourceDialog() {
+    // showModalBottomSheet: 화면 하단에서 스르륵 올라오는 형태의 다이얼로그를 표시합니다.
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min, // 내용물의 크기만큼만 다이얼로그 높이를 차지하도록 설정합니다.
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('갤러리에서 선택'),
+            onTap: () {
+              Navigator.of(ctx).pop(); // 다이얼로그를 먼저 닫습니다.
+              _pickImage(ImageSource.gallery); // 갤러리를 여는 함수를 호출합니다.
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text('카메라로 촬영'),
+            onTap: () {
+              Navigator.of(ctx).pop(); // 다이얼로그를 먼저 닫습니다.
+              _pickImage(ImageSource.camera); // 카메라를 여는 함수를 호출합니다.
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // StatefulWidget에서는 `widget.`을 통해 부모 위젯의 프로퍼티에 접근할 수 있습니다.
     // UserProfileScreen에서 사용할 데이터 추출 (null-safety 및 타입 캐스팅 고려)
-    String userId = user['User_ID']?.toString() ?? '사용자 ID 없음';
-    String userLocation = user['User_Location']?.toString() ?? '위치 정보 없음';
-    //User_Number은 int값으로 받아오지만 text로 출력할려면 string으로 타입변환해야함.
-    String userNumber = user['User_Number']?.toString() ?? '정보 없음';
-    int userPoint = user['User_point'] is int ? user['User_point'] : (user['User_point'] is String ? int.tryParse(user['User_point'] ?? '0') ?? 0 : 0);
-    String? imageUrl = user['imageUrl']?.toString();
+    String userId = widget.user['User_ID']?.toString() ?? '사용자 ID 없음';
+    String userLocation = widget.user['User_Location']?.toString() ?? '위치 정보 없음';
+    // [수정] User_Number의 타입이 int 또는 String 어떤 것이 와도 안전하게 처리하도록 강제 형변환(as int?)을 제거합니다.
+    String userNumber = widget.user['User_Number']?.toString() ?? '정보 없음';
+    int userPoint = widget.user['User_point'] is int ? widget.user['User_point'] : (widget.user['User_point'] is String ? int.tryParse(widget.user['User_point'] ?? '0') ?? 0 : 0);
+    String? networkImageUrl = widget.user['imageUrl']?.toString();
     // email 필드는 HomePage의 _prepareUserProfileData에서 현재 주석 처리되어 있으므로 여기서는 기본값을 사용하거나 표시하지 않음.
-    // String userEmail = user['email']?.toString() ?? '이메일 정보 없음';
+    // String userEmail = widget.user['email']?.toString() ?? '이메일 정보 없음';
 
     return Scaffold(
       appBar: AppBar(title: const Text('내 프로필')),
@@ -26,15 +95,23 @@ class UserProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-                  ? NetworkImage(imageUrl)
-                  : null,
-              backgroundColor: Colors.grey[200], // 이미지 없을 때 배경색
-              child: (imageUrl == null || imageUrl.isEmpty)
-                  ? const Icon(Icons.person, size: 50, color: Colors.grey) // 기본 아이콘
-                  : null,
+            // 5. CircleAvatar를 GestureDetector로 감싸서 탭 이벤트를 감지할 수 있도록 합니다.
+            GestureDetector(
+              onTap: _showImageSourceDialog, // 탭하면 이미지 소스 선택 다이얼로그를 표시합니다.
+              child: CircleAvatar(
+                radius: 50,
+                // 6. _pickedImageFile 상태에 따라 다른 이미지를 표시합니다.
+                //    사용자가 새로 선택한 이미지가 있으면 FileImage로, 없으면 기존 networkImageUrl로 표시합니다.
+                backgroundImage: _pickedImageFile != null
+                    ? FileImage(_pickedImageFile!) // 사용자가 선택한 파일 이미지를 표시
+                    : (networkImageUrl != null && networkImageUrl.isNotEmpty
+                        ? NetworkImage(networkImageUrl) // 기존 네트워크 URL 이미지를 표시
+                        : null), // 둘 다 없으면 배경색만 표시
+                backgroundColor: Colors.grey[200], // 이미지 없을 때 배경색
+                child: (_pickedImageFile == null && (networkImageUrl == null || networkImageUrl.isEmpty))
+                    ? const Icon(Icons.person, size: 50, color: Colors.grey) // 기본 아이콘
+                    : null,
+              ),
             ),
             const SizedBox(height: 20), // 프로필 이미지와 사용자 ID 사이의 간격
             Text(userId, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center), // 사용자 ID 표시
