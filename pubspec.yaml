@@ -35,6 +35,8 @@ dependencies:
     
   http: ^1.2.1  #HTTP사용을 위한 패키지
   image_picker: ^1.0.7 #갤러리/카메라 사용을 위한 패키지
+  flutter_dotenv: ^5.1.0 #API 키 관리를 위한 패키지
+  google_maps_flutter: ^2.6.1 #구글 맵 사용을 위한 패키지
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -63,9 +65,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - .env # .env 파일을 앱의 asset으로 등록
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
