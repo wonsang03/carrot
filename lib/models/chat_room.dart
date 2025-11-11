@@ -1,4 +1,5 @@
 // lib/models/chat_room.dart
+import 'package:flutter/foundation.dart';
 
 /// 💬 서버에서 받아오는 채팅방 정보를 담는 클래스입니다.
 class ChatRoom {
@@ -21,12 +22,16 @@ class ChatRoom {
   /// 서버에서 받은 JSON 데이터를 ChatRoom 객체로 변환
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
     return ChatRoom(
-      Chat_Number: json['Chat_Number'] ?? 0,
+      // [수정] String 타입인 Chat_Number에 int(0)가 들어가는 버그를 수정합니다.
+      //chat_nuber을 선언할때 int값으로 바꿔버리는 방법
+      Chat_Number: json['Chat_Number']?.toString() ?? '',
+      //name -> chat_Owner로 교체
       name: json['name'] ?? '',
-      lastMessage: json['lastMessage'] ?? '',
+      lastMessage: json['lastMessage'] ?? '', // 마지막 채팅
+      //time -> chat_Time으로 교체
       time: json['time'] ?? '',
-      unreadCount: json['unreadCount'] ?? 0,
-      avatarUrl: json['avatarUrl'] ?? '',
+      unreadCount: json['unreadCount'] ?? 0, // 읽지 않은 메시지 수
+      avatarUrl: json['avatarUrl'] ?? '', // 프로필 이미지 URL
     );
   }
 
