@@ -2,7 +2,7 @@
 # 📝 프로젝트: 대파마켓 (Da-pa Market)
 # 📄 파일: supabase_client.py
 # 👨‍💻 제작자: 서상원
-# 🗓️ 마지막 수정일: 2025-09-30
+# 🗓️ 마지막 수정일: 2025-11-17
 # ------------------------------------------------------------------------------
 # ✨ 대파마켓 앱의 모든 백엔드 API를 처리하는 Flask 서버
 # ==============================================================================
@@ -73,12 +73,12 @@ def create_product():
         
         # Flutter 앱에서 보낸 데이터 필드들을 명시적으로 확인
         product_to_insert = {
-            'Product_Name': data.get('Product_Name'),       # 제품 이름
+            'Product_Name': data.get('Product_Name'), 	# 제품 이름
             'Product_Picture': data.get('Product_Picture'), # 제품 사진
-            'Product_Price': data.get('Product_Price'),     # 제품 가격
-            'Product_Info': data.get('Product_Info'),       # 제품 상세 정보
-            'Product_Owner': data.get('Product_Owner'),     # 제품 올린사람
-            'Product_State': True                           # 판매상태 (새 상품은 무조건 True)
+            'Product_Price': data.get('Product_Price'), 	# 제품 가격
+            'Product_Info': data.get('Product_Info'), 	# 제품 상세 정보
+            'Product_Owner': data.get('Product_Owner'), 	# 제품 올린사람
+            'Product_State': True 				# 판매상태 (새 상품은 무조건 True)
         }
 
         # 필수 값(상품명, 판매자)이 모두 있는지 확인하고, 하나라도 없으면 입장을 막는 가드 역할
@@ -121,6 +121,33 @@ def get_nearby_products():
     """[GET /products/nearby] : 위치 기반으로 근처 상품을 조회합니다."""
     # TODO: 실제 위치 기반 검색 로직 구현 필요
     return jsonify([])
+
+
+# ═══ 👤 사용자 관련 API (User Profile) ═══════════════════════════════════════
+@app.route('/users/<user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    """[GET /users/<user_id>] : 특정 사용자(User_ID)의 모든 정보를 조회합니다."""
+    try:
+        # 'User' 테이블에서 'User_ID' 컬럼이 URL로 받은 user_id와 똑같은(.eq) 사용자 하나만(.single) 찾기
+        res = supabase.table('User').select('*').eq('User_ID', user_id).single().execute()
+
+        # 데이터가 없으면 404 에러 반환
+        if not res.data:
+            print(f"⚠️ /users/{user_id}: 사용자를 찾을 수 없음")
+            return jsonify({"error": "User not found"}), 404
+
+        # 사용자 정보를 찾았으면 반환
+        user_data = res.data
+        print(f"✅ /users/{user_id}: 사용자 정보 조회 성공")
+        
+        # 보안을 위해 비밀번호 필드는 제외하고 반환하는 것이 일반적이지만,
+        # 현재 DB 스키마에 따라 모든 필드를 반환합니다.
+        return jsonify(user_data)
+        
+    except Exception as e:
+        print(f"❌ /users/{user_id} 오류: {e}")
+        # Supabase SingleError 등 다양한 에러가 발생할 수 있음
+        return jsonify({"error": str(e)}), 500
 
 
 # ═══ 💬 채팅 관련 API (Chat & Messages) ═══════════════════════════════════
@@ -175,7 +202,7 @@ def post_message():
         message_to_insert = {
             'Message_Chat': data.get('Message_Chat'), # 어느 채팅방에 보낼지
             'Message_User': data.get('Message_User'), # 누가 보냈는지
-            'Message_Text': data.get('Message_Text')  # 내용은 무엇인지
+            'Message_Text': data.get('Message_Text') 	# 내용은 무엇인지
         }
         
         # 위 3가지 정보 중 하나라도 빠졌으면, 400 에러 보내고 함수 종료

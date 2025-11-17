@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+// 파일 구조상 'lib/screens/home_page.dart'에 파일이 있으므로 아래 경로가 정확합니다.
 import 'screens/home_page.dart';
 
 // 앱의 진입점(main 함수)
-// .env 파일을 비동기적으로 로드해야 하므로 main 함수를 async로 변경합니다.
 Future<void> main() async {
-  // Flutter 엔진과 위젯 트리를 바인딩합니다. main 함수가 비동기가 되면 필수적으로 호출해야 합니다.
+  // Flutter 엔진과 위젯 트리를 바인딩
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // .env 파일을 로드하여 환경 변수를 준비합니다.
+
+  // .env 파일을 로드 (파일이 없다면 이 줄은 에러가 날 수 있으니 .env 파일 확인 필요)
   await dotenv.load(fileName: ".env");
 
-  // runApp()은 앱 전체의 루트 위젯을 실행합니다.
   runApp(const MyApp());
 }
 
@@ -23,14 +22,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '당근마켓 클론',
-      debugShowCheckedModeBanner: false, // 오른쪽 상단 debug 배너 숨김
+      debugShowCheckedModeBanner: false, // 디버그 배너 숨김
       theme: ThemeData(
         primarySwatch: Colors.orange,
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: Colors.grey[50],
       ),
-      // ✨ [수정된 부분]
-      // HomePage가 상태를 가지는 StatefulWidget이 되었으므로 const 키워드를 제거합니다.
+      // HomePage는 StatefulWidget이므로 const를 붙이지 않습니다.
       home: HomePage(),
     );
   }

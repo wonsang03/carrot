@@ -29,10 +29,7 @@ class ApiService {
   }
 
   // 🆕 새로운 상품을 서버에 등록하는 함수
-  // ✨ [수정] sell_item_screen에서 Map<String, dynamic>을 받도록 수정
   static Future<Product> createProduct(Map<String, dynamic> productData) async {
-    // TODO: 중앙 컨트롤러에서 현재 로그인된 사용자 ID(Product_Owner)를 추가해야 합니다.
-    // productData['Product_Owner'] = '...실제 사용자 UUID...';
     productData['Product_State'] = true; // 판매중 상태 기본값
 
     try {
@@ -56,9 +53,28 @@ class ApiService {
     try {
       final response = await http.get(Uri.parse('$baseUrl/products/$productId'), headers: headers);
       if (response.statusCode == 200) {
-        return Product.fromJson(json.decode(response.body));
+        return Product.fromJson(json.decode(utf8.decode(response.bodyBytes)));
       } else {
         throw Exception('상품 정보를 불러올 수 없습니다.');
+      }
+    } catch (e) {
+      throw Exception('서버와 연결할 수 없습니다: $e');
+    }
+  }
+
+  // 👤 특정 사용자 ID로 프로필 정보를 가져오는 함수
+  static Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
+    try {
+      // API 경로: /users/{user_id}
+      final response = await http.get(Uri.parse('$baseUrl/users/$userId'), headers: headers);
+
+      if (response.statusCode == 200) {
+        // 백엔드가 단일 사용자 객체를 반환하므로 Map<String, dynamic>으로 디코딩
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else if (response.statusCode == 404) {
+        throw Exception('사용자 정보를 찾을 수 없습니다.');
+      } else {
+        throw Exception('사용자 정보를 불러올 수 없습니다: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('서버와 연결할 수 없습니다: $e');

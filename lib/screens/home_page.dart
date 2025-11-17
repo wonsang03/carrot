@@ -27,58 +27,68 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _errorMessage;
 
+  // 서버에서 받아온 실제 사용자 정보를 저장할 상태 변수
+  Map<String, dynamic> _userProfileData = {};
+
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _initializeData(); // 데이터 초기화
     _setupAnimation();
   }
 
   Future<void> _initializeData() async {
-    await _loadProducts();
-  }
-
-  Future<void> _loadProducts() async {
+    // 상품 정보와 사용자 정보를 모두 불러옵니다.
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
+
     try {
-      allProducts = await ApiService.fetchProducts();
+      // 두 작업을 동시에 실행
+      await Future.wait([
+        _loadProducts(),
+        _loadUserProfile(), // 사용자 정보 로딩 호출
+      ]);
     } catch (e) {
       setState(() {
         _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
       });
-      allProducts = [];
+      allProducts = []; // 상품 로딩 실패 시
+      _userProfileData = {}; // 사용자 정보 로딩 실패 시
     }
+
     setState(() {
       _isLoading = false;
     });
   }
 
-  // 가상의 사용자 프로필 데이터를 준비하는 메서드
-  // TODO: 실제 백엔드 API가 준비되면, 이 메서드 내부를 API 호출로 대체해야 합니다.
-  Map<String, dynamic> _prepareUserProfileData() {
-    // --- 프론트엔드 개발용 임시 사용자 데이터 (백엔드 API 응답 가정) ---
-    final Map<String, dynamic> mockUserData = {
-      'User_ID': 'devUser_01',                      // 사용자 아이디
-      'User_Location': '대파시 개발1동 감자아파트',      // 사용자 위치
-      'User_Number': 202405170001,           // 사용자 고유번호 (int 타입)
-      'User_Password': 'securePassword123!',       // 사용자 비밀번호 (실제 표시는 마스킹 필요)
-      'User_point': 36.5,                              // 사용자 매너온도 (숫자 타입)
-      'imageUrl': 'https://placehold.co/200x200/3498DB/FFFFFF?text=DEV', // 프로필 이미지 URL (UI 표시용)
-    };
-    // --- 여기까지 임시 데이터 ---
+  // 상품 목록을 불러오는 함수 (별도 분리)
+  Future<void> _loadProducts() async {
+    try {
+      allProducts = await ApiService.fetchProducts();
+    } catch (e) {
+      print('상품 로딩 실패: $e');
+      throw Exception('상품 로딩 실패');
+    }
+  }
 
-    // (백엔드 연동 시 예시)
-    // try {
-    //   // final Map<String, dynamic> actualUserData = await ApiService.fetchUserProfile();
-    //   // return actualUserData;
-    // } catch (e) {
-    //   // print('사용자 정보 로딩 실패: $e');
-    //   // return {}; // 오류 발생 시 빈 맵 또는 기본값 반환
-    // }
-    return mockUserData; // 현재는 임시 데이터 반환
+  // 실제 사용자 정보를 서버에서 불러오는 메서드
+  Future<void> _loadUserProfile() async {
+    // 'admin' ID를 사용합니다.
+    const String currentUserId = 'admin';
+
+    try {
+      final userData = await ApiService.fetchUserProfile(currentUserId);
+      // 프로필 이미지를 위한 임시 필드 추가
+      _userProfileData = {
+        ...userData,
+        'imageUrl': 'https://placehold.co/200x200/3498DB/FFFFFF?text=${userData['User_ID']}'
+      };
+    } catch (e) {
+      print('사용자 정보 로딩 실패: $e');
+      throw Exception('사용자 정보 로딩 실패');
+    }
   }
 
   void _navigateToSearch() {
@@ -93,9 +103,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  // [수정완료] showDialog 호출 방식 오류 수정됨
   void _showNotificationDialog() {
     showDialog(
-      context: context,
+      context: context, // <-- context: 를 추가하여 문법 오류 해결
       builder: (_) => AlertDialog(
         title: const Text('알림'),
         content: const Text('개발예정'),
@@ -136,7 +147,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
     );
-    if (result == 'refresh') await _loadProducts();
+    if (result == 'refresh') {
+      // 상품 목록만 새로고침
+      setState(() { _isLoading = true; });
+      await _loadProducts();
+      setState(() { _isLoading = false; });
+    }
   }
 
   void _onChatRoomTap(ChatRoom chatRoom, String userId) {
@@ -156,7 +172,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(builder: (_) => const SellItemScreen()),
     );
-    if (result == true || result == 'refresh') await _loadProducts();
+    if (result == true || result == 'refresh') {
+      // 상품 목록만 새로고침
+      setState(() { _isLoading = true; });
+      await _loadProducts();
+      setState(() { _isLoading = false; });
+    }
   }
 
   Widget _buildCurrentScreen() {
@@ -166,7 +187,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_errorMessage != null) {
       return Center(child: Text(_errorMessage!));
     }
-    
+
     List<Product> productsToShow = allProducts; // 홈 화면에는 전체 상품을 기본으로 표시
 
     switch (_currentIndex) {
@@ -175,14 +196,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       case 1:
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
-      // ✨ [수정된 부분] -> 이 주석은 ChatListScreen과 UserProfileScreen의 관계에 대한 것이므로 유지
-      // 더 이상 존재하지 않는 더미 데이터를 호출하는 대신, 임시 화면을 표시하여 오류를 해결했습니다.
-      // TODO: 로그인 기능 구현 후, 실제 사용자 정보를 UserProfileScreen에 전달해야 합니다. -> 이 주석의 컨텍스트는 이제 case 3으로 이동
         return ChatListScreen(onRoomTap: _onChatRoomTap);
       case 3: // "나의 정보" 탭
-        // TODO: 로그인 기능 구현 후, _prepareUserProfileData가 실제 사용자 정보를 반환하도록 수정해야 합니다.
-        final Map<String, dynamic> userData = _prepareUserProfileData();
-        return UserProfileScreen(user: userData);
+      // 실제 서버 데이터를 전달합니다.
+        if (_userProfileData.isEmpty) {
+          return const Center(child: Text('사용자 정보를 불러오는 데 실패했습니다.'));
+        }
+        return UserProfileScreen(user: _userProfileData);
       default:
         return HomeScreen(products: productsToShow, onProductTap: _onProductTap);
     }
