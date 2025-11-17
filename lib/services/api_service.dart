@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/product.dart';
 import '../models/chat_room.dart';
-import '../screens/chat_detail_screen.dart';
+import '../models/chat_message.dart';
 
 
 class ApiService {

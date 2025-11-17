@@ -26,27 +26,27 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return [
       ChatRoom(
         Chat_Number: 'dummy-room-1',
-        name: '백엔드 개발자',
-        lastMessage: '네, API 수정해서 보내드릴게요!',
-        time: '오후 10:45',
-        unreadCount: 2,
-        avatarUrl: '', // 프로필 이미지가 없을 경우
+        Chat_Owner: '백엔드 개발자',
+        Chat_LastMessage: '네, API 수정해서 보내드릴게요!',
+        Chat_Time: '오후 10:45',
+        Chat_UnreadCount: 2,
+        Chat_AvatarUrl: '', // 프로필 이미지가 없을 경우
       ),
       ChatRoom(
         Chat_Number: 'dummy-room-2',
-        name: '프론트엔드 개발자',
-        lastMessage: '확인 감사합니다. 기다리겠습니다.',
-        time: '오후 10:42',
-        unreadCount: 0,
-        avatarUrl: 'https://i.pravatar.cc/150?img=1', // 프로필 이미지가 있는 경우
+        Chat_Owner: '프론트엔드 개발자',
+        Chat_LastMessage: '확인 감사합니다. 기다리겠습니다.',
+        Chat_Time: '오후 10:42',
+        Chat_UnreadCount: 0,
+        Chat_AvatarUrl: 'https://i.pravatar.cc/150?img=1', // 프로필 이미지가 있는 경우
       ),
       ChatRoom(
         Chat_Number: 'dummy-room-3',
-        name: '디자이너',
-        lastMessage: '아이콘은 이걸로 사용해주세요.',
-        time: '오전 09:10',
-        unreadCount: 1,
-        avatarUrl: 'https://i.pravatar.cc/150?img=5',
+        Chat_Owner: '디자이너',
+        Chat_LastMessage: '아이콘은 이걸로 사용해주세요.',
+        Chat_Time: '오전 09:10',
+        Chat_UnreadCount: 1,
+        Chat_AvatarUrl: 'https://i.pravatar.cc/150?img=5',
       ),
     ];
   }
@@ -84,9 +84,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
               final room = chatRooms[i];
               
               // 아바타 URL이 있으면 네트워크 이미지를, 없으면 기본 아이콘을 보여줍니다.
-              final leadingWidget = room.avatarUrl.isNotEmpty
+              final leadingWidget = room.Chat_AvatarUrl.isNotEmpty
                   ? CircleAvatar(
-                      backgroundImage: NetworkImage(room.avatarUrl),
+                      backgroundImage: NetworkImage(room.Chat_AvatarUrl),
                     )
                   : const CircleAvatar( // 기본 아바타
                       child: Icon(Icons.person),
@@ -94,15 +94,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
               return ListTile(
                 leading: leadingWidget,
-                title: Text(room.name),
-                subtitle: Text(room.lastMessage),
+                title: Text(room.Chat_Owner),
+                subtitle: Text(room.Chat_LastMessage),
                 // 안 읽은 메시지가 있으면 빨간 점으로 표시합니다.
-                trailing: room.unreadCount > 0
+                trailing: room.Chat_UnreadCount > 0
                     ? CircleAvatar(
                         radius: 12,
                         backgroundColor: Colors.red,
                         child: Text(
-                          room.unreadCount.toString(),
+                          room.Chat_UnreadCount.toString(),
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       )
