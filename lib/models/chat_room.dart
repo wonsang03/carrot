@@ -21,6 +21,8 @@ class ChatRoom {
 
   /// 서버에서 받은 JSON 데이터를 ChatRoom 객체로 변환
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    //[디버깅용] DB에서 수신받는 값 확인
+    //print(' [ChatRoom.fromJson] 수신된 데이터: $json');
     return ChatRoom(
       // [수정] String 타입인 Chat_Number에 int(0)가 들어가는 버그를 수정합니다.
       //chat_nuber을 선언할때 int값으로 바꿔버리는 방법

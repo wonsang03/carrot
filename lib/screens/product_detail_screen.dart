@@ -112,15 +112,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             // 판매 상태 표시 (판매중/판매완료)
             Text('판매 상태: ${p.Product_State ? '판매중' : '판매완료'}'),
             const SizedBox(height: 8),
-            // 상품 거리 표시 (소수점 1자리)
-            Text('거리: ${p.distance.toStringAsFixed(1)}km'),
+            // ✨ [수정] 거리 정보: Product_Location 사용 (없으면 기본 메시지)
+            Text('거리: ${p.Product_Location.isNotEmpty ? p.Product_Location : '정보 없음'}'),
           ],
         ),
       ),
       // 화면 오른쪽 아래에 채팅하기 버튼
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // 채팅 시작 기능 (아직 구현 안됨)
+          // To Do : 채팅 시작 기능 (아직 구현 안됨)
         },
         label: const Text('채팅하기'),
         icon: const Icon(Icons.chat),

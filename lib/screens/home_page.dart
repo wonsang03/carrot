@@ -91,6 +91,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+
+  //기능 부분
+  //네비게이션바 동작 과정
   void _navigateToSearch() {
     Navigator.push(
       context,
@@ -208,6 +211,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  //디자인 부분
   @override
   Widget build(BuildContext context) {
     return Scaffold(
