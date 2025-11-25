@@ -1,4 +1,7 @@
+// lib/widget/bottom_nav_bar.dart
+
 import 'package:flutter/material.dart';
+import '../main.dart'; // ✅ dapaGreen 상수를 사용하기 위해 추가
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -42,6 +45,10 @@ class BottomNavBar extends StatelessWidget {
 
   Widget _navItem(int idx, IconData icon, String label) {
     final isSel = idx == currentIndex;
+    // ✅ 활성화 색상을 DapaGreen으로 설정
+    final activeColor = dapaGreen[700];
+    final inactiveColor = Colors.grey;
+
     return GestureDetector(
       onTap: () => onTap(idx),
       child: ScaleTransition(
@@ -53,14 +60,14 @@ class BottomNavBar extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: isSel ? Colors.orange : Colors.grey,
+                color: isSel ? activeColor : inactiveColor, // ✅ 색상 적용
                 size: 24,
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSel ? Colors.orange : Colors.grey,
+                  color: isSel ? activeColor : inactiveColor, // ✅ 색상 적용
                   fontSize: 12,
                   fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                 ),

@@ -1,3 +1,5 @@
+// lib/screens/home_page.dart
+
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../models/chat_room.dart';
@@ -9,7 +11,7 @@ import 'chat_list_screen.dart';
 import 'chat_detail_screen.dart';
 import 'sell_item_screen.dart';
 import 'product_detail_screen.dart';
-import 'user_profile_screen.dart'; // UserProfileScreen import 확인
+import 'user_profile_screen.dart';
 import 'search_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -29,33 +31,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   // 서버에서 받아온 실제 사용자 정보를 저장할 상태 변수
   Map<String, dynamic> _userProfileData = {};
+  // 임시로 로그인된 사용자 ID를 저장
+  String get currentUserId => _userProfileData['User_Number'] ?? '8ac96703-506e-40fe-9ad2-5ba09d9896d5';
+
 
   @override
   void initState() {
     super.initState();
-    _initializeData(); // 데이터 초기화
+    _initializeData();
     _setupAnimation();
   }
 
   Future<void> _initializeData() async {
-    // 상품 정보와 사용자 정보를 모두 불러옵니다.
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // 두 작업을 동시에 실행
       await Future.wait([
         _loadProducts(),
-        _loadUserProfile(), // 사용자 정보 로딩 호출
+        _loadUserProfile(),
       ]);
     } catch (e) {
       setState(() {
-        _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.';
+        _errorMessage = '데이터를 불러오는 데 실패했습니다.\\n서버가 켜져있는지 확인해주세요.';
       });
-      allProducts = []; // 상품 로딩 실패 시
-      _userProfileData = {}; // 사용자 정보 로딩 실패 시
+      allProducts = [];
+      _userProfileData = {};
     }
 
     setState(() {
@@ -63,7 +66,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     });
   }
 
-  // 상품 목록을 불러오는 함수 (별도 분리)
   Future<void> _loadProducts() async {
     try {
       allProducts = await ApiService.fetchProducts();
@@ -73,18 +75,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  // 실제 사용자 정보를 서버에서 불러오는 메서드
   Future<void> _loadUserProfile() async {
-    // 'admin' ID를 사용합니다.
-    const String currentUserId = 'admin';
+    const String tempUserId = 'admin';
 
     try {
-      final userData = await ApiService.fetchUserProfile(currentUserId);
-      // 프로필 이미지를 위한 임시 필드 추가
-      _userProfileData = {
-        ...userData,
-        'imageUrl': 'https://placehold.co/200x200/3498DB/FFFFFF?text=${userData['User_ID']}'
-      };
+      final userData = await ApiService.fetchUserProfile(tempUserId);
+
+      // ✅ [수정] 서버에서 이미 'imageUrl'을 설정했으므로, 임시 URL 생성 로직을 제거합니다.
+      _userProfileData = userData;
+
     } catch (e) {
       print('사용자 정보 로딩 실패: $e');
       throw Exception('사용자 정보 로딩 실패');
@@ -93,23 +92,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
 
   //기능 부분
-  //네비게이션바 동작 과정
   void _navigateToSearch() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => SearchScreen(
-          filteredProducts: allProducts, // SearchScreen에 전체 상품 목록 전달
+          filteredProducts: allProducts,
           onProductTap: _onProductTap,
         ),
       ),
     );
   }
 
-  // [수정완료] showDialog 호출 방식 오류 수정됨
   void _showNotificationDialog() {
     showDialog(
-      context: context, // <-- context: 를 추가하여 문법 오류 해결
+      context: context,
       builder: (_) => AlertDialog(
         title: const Text('알림'),
         content: const Text('개발예정'),
@@ -151,23 +148,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
     );
     if (result == 'refresh') {
-      // 상품 목록만 새로고침
       setState(() { _isLoading = true; });
       await _loadProducts();
       setState(() { _isLoading = false; });
     }
   }
 
-  void _onChatRoomTap(ChatRoom chatRoom, String userId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatDetailScreen(
-          chatRoom: chatRoom,
-          currentUserId: userId, // 이 userId도 실제 로그인 정보와 연동 필요
+  // Navigation 오류 처리 (try-catch) 및 await 제거
+  void _onChatRoomTap(ChatRoom chatRoom, String tempUserId) {
+    final actualUserId = currentUserId;
+
+    try {
+      // await를 제거하여 화면 전환이 블로킹되는 것을 방지합니다.
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(
+            chatRoom: chatRoom,
+            currentUserId: actualUserId,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      print('=====================================================');
+      print('❌❌ NAVIGATION PUSH EXCEPTION ❌❌');
+      print('Error Details: $e');
+      print('=====================================================');
+      if(context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('화면 전환 중 오류가 발생했습니다: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _onSellButtonPressed() async {
@@ -176,7 +188,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       MaterialPageRoute(builder: (_) => const SellItemScreen()),
     );
     if (result == true || result == 'refresh') {
-      // 상품 목록만 새로고침
       setState(() { _isLoading = true; });
       await _loadProducts();
       setState(() { _isLoading = false; });
@@ -191,7 +202,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return Center(child: Text(_errorMessage!));
     }
 
-    List<Product> productsToShow = allProducts; // 홈 화면에는 전체 상품을 기본으로 표시
+    List<Product> productsToShow = allProducts;
 
     switch (_currentIndex) {
       case 0:
@@ -200,8 +211,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         return MapScreen(products: allProducts, onProductTap: _onProductTap);
       case 2:
         return ChatListScreen(onRoomTap: _onChatRoomTap);
-      case 3: // "나의 정보" 탭
-      // 실제 서버 데이터를 전달합니다.
+      case 3:
         if (_userProfileData.isEmpty) {
           return const Center(child: Text('사용자 정보를 불러오는 데 실패했습니다.'));
         }
@@ -218,13 +228,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       backgroundColor: Colors.grey[50],
       appBar: _currentIndex == 0
           ? AppBar(
-        backgroundColor: Colors.white,
         elevation: 1,
         automaticallyImplyLeading: false,
-        title: const Text('대파마켓', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text('대파마켓', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(icon: const Icon(Icons.search, color: Colors.black), onPressed: _navigateToSearch),
-          IconButton(icon: const Icon(Icons.notifications, color: Colors.black), onPressed: _showNotificationDialog),
+          IconButton(icon: const Icon(Icons.search), onPressed: _navigateToSearch),
+          IconButton(icon: const Icon(Icons.notifications), onPressed: _showNotificationDialog),
         ],
       )
           : null,
@@ -237,7 +246,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton(
         onPressed: _onSellButtonPressed,
-        backgroundColor: Colors.orange,
         child: const Icon(Icons.add, color: Colors.white),
       )
           : null,

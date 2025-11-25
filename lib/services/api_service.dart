@@ -157,4 +157,23 @@ class ApiService {
       throw Exception('위치 기반 검색 중 오류: $e');
     }
   }
+
+  // 📢 특정 채팅방의 메시지를 모두 '읽음'으로 표시하는 함수 (새로 추가)
+  static Future<void> markChatAsRead(String chatRoomId) async {
+    try {
+      // 서버의 POST /chats/<chat_id>/read 엔드포인트를 호출
+      final response = await http.post(
+        Uri.parse('$baseUrl/chats/$chatRoomId/read'),
+        headers: headers,
+      );
+      // 서버에서 200 (OK) 코드를 기대합니다.
+      if (response.statusCode != 200) {
+        throw Exception('메시지 읽음 처리에 실패했습니다: ${response.statusCode}');
+      }
+      // 읽음 처리에 성공하면 아무것도 반환하지 않습니다.
+    } catch (e) {
+      // 읽음 처리는 필수 기능이 아니므로, 오류가 발생하더라도 앱의 흐름을 막지 않도록 경고만 남깁니다.
+      print('Warning: 읽음 처리 API 호출 중 오류 발생: $e');
+    }
+  }
 }
