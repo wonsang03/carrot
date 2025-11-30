@@ -25,12 +25,16 @@ class ChatRoom {
 
   /// 서버에서 받은 JSON 데이터를 ChatRoom 객체로 변환
   factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    // ✨ [디버깅] 서버에서 오는 시간과 안 읽은 개수 데이터를 콘솔에 출력합니다.
+    // Run 탭에서 "📦 [ChatRoom]..." 로그를 확인해주세요.
+    print('📦 [ChatRoom] ID: ${json['Chat_Number']}, Time: ${json['Chat_Time']}, Unread: ${json['Chat_UnreadCount']}');
+
     return ChatRoom(
       Chat_Number: json['Chat_Number']?.toString() ?? '',
       Chat_Owner: json['Chat_Owner'] ?? '',
       Chat_LastMessage: json['Chat_LastMessage'] ?? '메시지 없음',
-      Chat_Time: json['Chat_Time'] ?? '',
-      Chat_UnreadCount: json['Chat_UnreadCount'] ?? 0,
+      Chat_Time: json['Chat_Time'] ?? '', // 시간이 없으면 빈 문자열
+      Chat_UnreadCount: json['Chat_UnreadCount'] ?? 0, // 없으면 0
       Chat_AvatarUrl: json['Chat_AvatarUrl'] ?? '',
 
       // ✅ 서버에서 보낸 'opponent_name' 필드를 받도록 연결합니다.

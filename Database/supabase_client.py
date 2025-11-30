@@ -8,6 +8,7 @@
 
 from flask import Flask, jsonify, request
 from supabase import create_client, Client
+import uuid
 
 # ═══ ⚙️ 초기 설정 (Initialization & Setup) ══════════════════════════════════
 app = Flask(__name__)
@@ -100,6 +101,58 @@ def get_nearby_products():
     """[GET /products/nearby] : 위치 기반으로 근처 상품을 조회합니다."""
     return jsonify([])
 
+# ═══ 🖼️ 파일 업로드 API (Storage) ══════════════════════════════════════════
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    """
+    [POST /upload] : 이미지를 Supabase Storage에 업로드하고 URL을 반환합니다.
+    Form Data:
+      - file: 업로드할 이미지 파일
+      - type: (옵션) 'profile'이면 storage2(프로필용), 아니면 storage1(상품용) 사용
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "파일이 전송되지 않았습니다."}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "선택된 파일이 없습니다."}), 400
+
+    # 업로드 타입에 따라 버킷 선택
+    upload_type = request.form.get('type', 'product') # 기본값은 product
+    # TODO : 사진 저장소 이름이 다르다면 이름 수정하기.
+    if upload_type == 'profile':
+        bucket_name = 'storage2'  # 프로필용 저장소 이름
+    else:
+        bucket_name = 'storage1'  # 상품용 저장소 이름
+
+    print(f"ℹ️ /upload 요청: 타입='{upload_type}' -> 버킷='{bucket_name}' 선택됨")
+
+    try:
+        # 1. 파일 내용 읽기
+        file_content = file.read()
+        
+        # 2. 고유한 파일명 생성 (UUID 사용)
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+        filename = f"{uuid.uuid4()}.{file_ext}"
+        path_on_storage = f"uploads/{filename}" # uploads 폴더 안에 저장
+
+        # 3. Supabase Storage에 업로드
+        res = supabase.storage.from_(bucket_name).upload(
+            path=path_on_storage,
+            file=file_content,
+            file_options={"content-type": file.content_type}
+        )
+        
+        # 4. 업로드된 이미지의 Public URL 가져오기
+        public_url = supabase.storage.from_(bucket_name).get_public_url(path_on_storage)
+
+        print(f"✅ /upload: 이미지 업로드 성공. URL: {public_url}")
+        return jsonify({"url": public_url}), 201
+
+    except Exception as e:
+        print(f"❌ /upload 오류 ({bucket_name}): {e}")
+        return jsonify({"error": f"이미지 업로드 실패 ({bucket_name}): {str(e)}"}), 500
+
 # ═══ 👤 사용자 관련 API (User Profile) ═══════════════════════════════════════
 @app.route('/users/<user_id>', methods=['GET'])
 def get_user_profile(user_id):
@@ -112,28 +165,59 @@ def get_user_profile(user_id):
             # 2. 결과가 없으면 User_Number (UUID)로 다시 조회 시도
             res = supabase.table('User').select('*').eq('User_Number', user_id).execute()
         
-        # 결과가 0행이거나 비어있으면 404 반환 (PGRST116 오류 회피)
+        # 결과가 0행이거나 비어있으면 404 반환
         if not res.data:
             print(f"⚠️ /users/{user_id}: 사용자를 찾을 수 없음 (0 rows)")
             return jsonify({"error": "User not found"}), 404
 
         user_data = res.data[0] 
         
-        # ✅ [수정] DB의 User_Image 필드를 'imageUrl' 키에 할당하고, 없으면 placehold.co 사용
+        # ✅ [이미지 처리] DB URL이 유효하면 사용하고, 아니면 placehold.co 사용
         db_image_url = user_data.get('User_Image')
         
         if db_image_url and db_image_url.startswith('http'):
             user_data['imageUrl'] = db_image_url
         else:
-            # ✅ [수정 완료] 접속 실패하는 via.placeholder.com 대신 placehold.co 사용
             user_data['imageUrl'] = 'https://placehold.co/150x150/EEEEEE/999999/png?text=' + user_data.get('User_ID', 'N/A')
         
         print(f"✅ /users/{user_id}: 사용자 정보 조회 성공")
-        
         return jsonify(user_data)
         
     except Exception as e:
         print(f"❌ /users/{user_id} 오류: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/users/<user_id>', methods=['PUT'])
+def update_user_profile(user_id):
+    """[PUT /users/<user_id>] : 사용자 프로필(이미지, 위치 등) 정보를 수정합니다."""
+    try:
+        data = request.get_json()
+        update_data = {}
+        
+        # 클라이언트가 보낸 데이터 중 유효한 것만 업데이트 목록에 추가
+        if 'User_Image' in data:
+            update_data['User_Image'] = data['User_Image']
+        if 'User_Location' in data:
+            update_data['User_Location'] = data['User_Location']
+            
+        if not update_data:
+             return jsonify({"error": "수정할 데이터가 없습니다."}), 400
+
+        # 1. User_Number (UUID)로 업데이트 시도
+        res = supabase.table('User').update(update_data).eq('User_Number', user_id).execute()
+        
+        # 2. 실패하면 User_ID로 업데이트 시도
+        if not res.data:
+             res = supabase.table('User').update(update_data).eq('User_ID', user_id).execute()
+             
+        if not res.data:
+            return jsonify({"error": "User not found for update"}), 404
+            
+        print(f"✅ /users/{user_id} 정보 수정 성공: {update_data}")
+        return jsonify(res.data[0])
+        
+    except Exception as e:
+        print(f"❌ /users/{user_id} 수정 오류: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ═══ 💬 채팅 관련 API (Chat & Messages) ═══════════════════════════════════

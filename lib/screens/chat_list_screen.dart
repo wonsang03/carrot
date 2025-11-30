@@ -32,13 +32,33 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
-  // 서버에서 받은 시간을 '오후 00:00' 형태로 포맷하는 헬퍼 함수
+  // ✨ [개선] 시간 포맷 헬퍼 함수
   String _formatTime(String timeString) {
+    if (timeString.isEmpty) return '';
+
     try {
+      // 1. DateTime으로 파싱 시도
       final dateTime = DateTime.parse(timeString).toLocal();
-      return '${dateTime.hour > 12 ? '오후' : '오전'} ${dateTime.hour % 12}:${dateTime.minute.toString().padLeft(2, '0')}';
+      final now = DateTime.now();
+
+      // 2. 오늘 날짜와 비교
+      if (dateTime.year == now.year && dateTime.month == now.month && dateTime.day == now.day) {
+        // 오늘이면: "오후 3:30"
+        final hour = dateTime.hour;
+        final minute = dateTime.minute.toString().padLeft(2, '0');
+        final period = hour >= 12 ? '오후' : '오전';
+        final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+        return '$period $displayHour:$minute';
+      } else {
+        // 오늘이 아니면: "11월 25일"
+        return '${dateTime.month}월 ${dateTime.day}일';
+      }
     } catch (e) {
-      return timeString.length > 5 ? timeString.substring(11, 16) : timeString;
+      // 파싱 실패 시 원본 문자열에서 시간 부분만 추출 시도 (예: "2023-11-25 14:30:00")
+      if (timeString.length >= 16) {
+        return timeString.substring(11, 16); // "14:30" 부분 추출
+      }
+      return timeString; // 정 안되면 원본 그대로 반환
     }
   }
 
@@ -50,7 +70,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('대파마켓 채팅', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false, // ✅ 수정 완료: 제목을 왼쪽(시작점)으로 정렬
+        centerTitle: false,
+        actions: [
+          // [디버깅용] 새로고침 버튼 추가
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshChatRooms,
+          )
+        ],
       ),
       body: FutureBuilder<List<ChatRoom>>(
         future: futureChatRooms,
@@ -69,6 +96,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               itemCount: chatRooms.length,
               itemBuilder: (context, i) {
                 final room = chatRooms[i];
+                // 안 읽은 메시지 확인 (0보다 크면 true)
                 final hasUnread = room.Chat_UnreadCount > 0;
                 final formattedTime = _formatTime(room.Chat_Time);
 
@@ -89,16 +117,32 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       leading: leadingWidget,
                       title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start, // 핵심: 왼쪽 정렬
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            room.opponentName,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  room.opponentName,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // 시간 표시 (우측 상단)
+                              Text(
+                                formattedTime,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4), // 제목과 부제 사이 간격
+                          const SizedBox(height: 4),
                           Text(
                             room.Chat_LastMessage,
                             style: TextStyle(
@@ -110,33 +154,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           ),
                         ],
                       ),
-                      subtitle: null, // 기존 subtitle 제거
-                      trailing: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            formattedTime,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: hasUnread ? activeGreen : Colors.grey[600],
-                              fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (hasUnread)
-                            Container(
-                              width: 8,
-                              height: 8,
+                      // Trailing에 안 읽은 메시지 카운트 배지 표시
+                      trailing: hasUnread 
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: const BoxDecoration(
                                 color: Colors.redAccent,
-                                shape: BoxShape.circle,
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
                               ),
-                            ),
-                        ],
-                      ),
-                      onTap: () {
+                              child: Text(
+                                room.Chat_UnreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(), // 없으면 빈 공간
+                      
+                      onTap: () async {
                         widget.onRoomTap(room, myUserId);
+                        // 갔다 오면 목록 새로고침
                         _refreshChatRooms();
                       },
                     ),

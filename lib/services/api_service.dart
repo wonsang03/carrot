@@ -1,13 +1,15 @@
 import 'dart:convert';
+import 'dart:io'; // ✨ [추가] 파일 처리를 위해 필요
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart'; // ✨ 파일 타입 지정을 위해 필요
 import '../models/product.dart';
 import '../models/chat_room.dart';
 import '../models/chat_message.dart';
 
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:5000';
-  //static const String baseUrl = 'http://10.0.2.2:5000';
+  //static const String baseUrl = 'http://127.0.0.1:5000';
+  static const String baseUrl = 'http://10.0.2.2:5000';
   static const Map<String, String> headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -78,6 +80,57 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('서버와 연결할 수 없습니다: $e');
+    }
+  }
+
+  // ✨ [추가] 이미지를 업로드하고 URL을 반환하는 범용 함수
+  static Future<String> uploadImage(File imageFile, {String type = 'product'}) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
+      
+      // 업로드 타입 지정 ('profile' 또는 'product')
+      request.fields['type'] = type;
+
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
+      ));
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 201) {
+        throw Exception('이미지 업로드 실패: ${response.body}');
+      }
+
+      final responseData = json.decode(response.body);
+      return responseData['url']; // 업로드된 이미지 URL 반환
+
+    } catch (e) {
+      throw Exception('이미지 업로드 중 오류: $e');
+    }
+  }
+
+  // ✨ [기존] 사용자 프로필 이미지 업로드 및 업데이트 함수
+  static Future<void> updateUserProfileImage(String userId, File imageFile) async {
+    try {
+      // 1. 이미지 업로드 (프로필 타입)
+      final imageUrl = await uploadImage(imageFile, type: 'profile');
+
+      // 2. 사용자 정보 업데이트 요청 (PUT /users/{user_id})
+      final updateResponse = await http.put(
+        Uri.parse('$baseUrl/users/$userId'),
+        headers: headers,
+        body: json.encode({'User_Image': imageUrl}),
+      );
+
+      if (updateResponse.statusCode != 200) {
+        throw Exception('사용자 정보 업데이트 실패');
+      }
+
+    } catch (e) {
+      throw Exception('프로필 이미지 변경 중 오류: $e');
     }
   }
 
@@ -158,7 +211,7 @@ class ApiService {
     }
   }
 
-  // 📢 특정 채팅방의 메시지를 모두 '읽음'으로 표시하는 함수 (새로 추가)
+  // 📢 특정 채팅방의 메시지를 모두 '읽음'으로 표시하는 함수 (기존 함수 유지)
   static Future<void> markChatAsRead(String chatRoomId) async {
     try {
       // 서버의 POST /chats/<chat_id>/read 엔드포인트를 호출

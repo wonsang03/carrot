@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../main.dart'; // DapaGreen 상수를 사용하기 위해 import
+import '../services/api_service.dart'; // ✨ API 서비스를 import
 
 class UserProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -16,6 +17,41 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   File? _pickedImageFile;
+  bool _isUploading = false; // ✨ 업로드 중인지 확인하는 상태 변수
+
+  // ✨ [수정] ApiService의 함수를 호출하여 이미지 업로드 및 프로필 갱신
+  Future<void> _uploadImage(File imageFile) async {
+    setState(() {
+      _isUploading = true; // 로딩 시작
+    });
+
+    // 업데이트할 대상 ID (UUID가 있으면 우선 사용, 없으면 User_ID 사용)
+    final String userId = widget.user['User_Number']?.toString() ?? widget.user['User_ID'].toString();
+
+    try {
+      // ✨ ApiService의 updateUserProfileImage 함수 호출 (통신 로직 분리)
+      await ApiService.updateUserProfileImage(userId, imageFile);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('프로필 사진이 성공적으로 변경되었습니다!')),
+        );
+      }
+    } catch (e) {
+      print('❌ 프로필 변경 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류 발생: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false; // 로딩 종료
+        });
+      }
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final imagePicker = ImagePicker();
@@ -32,6 +68,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() {
       _pickedImageFile = File(pickedImage.path);
     });
+    
+    // ✨ 이미지를 선택하자마자 서버로 업로드 시작
+    _uploadImage(_pickedImageFile!);
   }
 
   void _showImageSourceDialog() {
@@ -88,30 +127,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 radius: 50,
                 backgroundColor: Colors.grey[200],
                 child: ClipOval(
-                  child: _pickedImageFile != null
-                      ? Image.file(
-                    _pickedImageFile!,
-                    fit: BoxFit.cover,
-                    width: 100,
-                    height: 100,
-                  )
-                      : (networkImageUrl != null && networkImageUrl.isNotEmpty)
-                      ? Image.network(
-                    networkImageUrl,
-                    fit: BoxFit.cover,
-                    width: 100,
-                    height: 100,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.person, size: 50, color: Colors.grey);
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      );
-                    },
-                  )
-                      : const Icon(Icons.person, size: 50, color: Colors.grey),
+                  child: _isUploading 
+                      // ✨ 업로드 중일 때는 로딩 인디케이터 표시
+                      ? const SizedBox(
+                          width: 40, 
+                          height: 40, 
+                          child: CircularProgressIndicator(strokeWidth: 3)
+                        )
+                      : _pickedImageFile != null
+                          ? Image.file(
+                              _pickedImageFile!,
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 100,
+                            )
+                          : (networkImageUrl != null && networkImageUrl.isNotEmpty)
+                              ? Image.network(
+                                  networkImageUrl,
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.person, size: 50, color: Colors.grey);
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    );
+                                  },
+                                )
+                              : const Icon(Icons.person, size: 50, color: Colors.grey),
                 ),
               ),
             ),

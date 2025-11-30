@@ -15,8 +15,6 @@ class _SellItemScreenState extends State<SellItemScreen> {
   final _nameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  // 이미지 URL 컨트롤러는 더 이상 필요 없으므로 삭제합니다.
-  // final _imageCtrl = TextEditingController();
 
   // 사용자가 선택한 이미지 파일을 저장할 상태 변수입니다.
   File? _pickedImageFile;
@@ -78,16 +76,15 @@ class _SellItemScreenState extends State<SellItemScreen> {
       // 이 값은 실제 로그인된 사용자의 UUID로 교체되어야 합니다.
       const String currentUserId = '8ac96703-506e-40fe-9ad2-5ba09d9896d5';
 
-      // TODO: 백엔드에 이미지 '파일' 업로드 기능 구현 후, 이 부분을 수정해야 합니다.
-      // 1. _pickedImageFile을 서버(예: Supabase Storage)에 업로드합니다.
-      // 2. 업로드 후 반환받은 이미지의 public URL을 'Product_Picture' 값으로 사용합니다.
-      // 현재는 백엔드가 URL만 받으므로, 임시 URL을 사용합니다.
-      final imageUrl = 'https://placehold.co/600x400.png?text=업로드+예정';
+      // ✨ [수정] 1. 이미지를 먼저 'storage1'(상품용)에 업로드하고 URL을 받아옵니다.
+      // uploadImage 함수의 type 기본값이 'product'이므로 따로 지정하지 않아도 됩니다.
+      final imageUrl = await ApiService.uploadImage(_pickedImageFile!);
 
+      // ✨ [수정] 2. 받아온 URL을 사용하여 상품을 등록합니다.
       await ApiService.createProduct({
         'Product_Name': _nameCtrl.text,
         'Product_Price': int.tryParse(_priceCtrl.text) ?? 0,
-        'Product_Picture': imageUrl, // 선택된 이미지 파일의 URL을 전달 (현재는 임시값)
+        'Product_Picture': imageUrl, // 실제 업로드된 이미지 URL 사용
         'Product_Info': _descCtrl.text,
         'Product_Owner': currentUserId,
       });
@@ -110,7 +107,6 @@ class _SellItemScreenState extends State<SellItemScreen> {
     _nameCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
-    // _imageCtrl은 삭제되었으므로 dispose 호출도 제거합니다.
     super.dispose();
   }
 
@@ -167,7 +163,6 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 maxLines: 3,
                 validator: (v) => v == null || v.isEmpty ? '설명을 입력하세요' : null,
               ),
-              // 이미지 URL 입력란은 제거되었습니다.
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
