@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../widget/product_card.dart';
+import '../main.dart';
 
 // HomeScreen: 외부에서 전달받은 상품 목록을 화면에 표시합니다.
 class HomeScreen extends StatefulWidget {
@@ -25,19 +26,46 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: null, // AppBar를 완전히 제거
       body: widget.products.isEmpty
-          ? const Center(child: Text('표시할 상품이 없습니다.'))
-          : ListView.builder(
-        itemCount: widget.products.length,
-        itemBuilder: (context, index) {
-          final product = widget.products[index];
-          return ProductCard(
-            product: product,
-            onTap: () => widget.onProductTap(product),
-          );
-        },
-      ),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '표시할 상품이 없습니다',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () async {
+                // 새로고침 기능은 부모 위젯에서 처리
+              },
+              color: dapaGreen[500],
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: widget.products.length,
+                itemBuilder: (context, index) {
+                  final product = widget.products[index];
+                  return ProductCard(
+                    product: product,
+                    onTap: () => widget.onProductTap(product),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

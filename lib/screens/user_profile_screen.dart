@@ -115,78 +115,155 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     String? networkImageUrl = widget.user['imageUrl']?.toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('내 프로필')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            GestureDetector(
-              onTap: _showImageSourceDialog,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey[200],
-                child: ClipOval(
-                  child: _isUploading 
-                      // ✨ 업로드 중일 때는 로딩 인디케이터 표시
-                      ? const SizedBox(
-                          width: 40, 
-                          height: 40, 
-                          child: CircularProgressIndicator(strokeWidth: 3)
-                        )
-                      : _pickedImageFile != null
-                          ? Image.file(
-                              _pickedImageFile!,
-                              fit: BoxFit.cover,
-                              width: 100,
-                              height: 100,
-                            )
-                          : (networkImageUrl != null && networkImageUrl.isNotEmpty)
-                              ? Image.network(
-                                  networkImageUrl,
-                                  fit: BoxFit.cover,
-                                  width: 100,
-                                  height: 100,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Icon(Icons.person, size: 50, color: Colors.grey);
-                                  },
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    );
-                                  },
-                                )
-                              : const Icon(Icons.person, size: 50, color: Colors.grey),
+      appBar: AppBar(
+        title: const Text('내 프로필'),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              // 프로필 이미지
+              GestureDetector(
+                onTap: _showImageSourceDialog,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.grey[200],
+                      child: ClipOval(
+                        child: _isUploading 
+                            ? SizedBox(
+                                width: 120,
+                                height: 120,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(dapaGreen[500]!),
+                                ),
+                              )
+                            : _pickedImageFile != null
+                                ? Image.file(
+                                    _pickedImageFile!,
+                                    fit: BoxFit.cover,
+                                    width: 120,
+                                    height: 120,
+                                  )
+                                : (networkImageUrl != null && networkImageUrl.isNotEmpty)
+                                    ? Image.network(
+                                        networkImageUrl,
+                                        fit: BoxFit.cover,
+                                        width: 120,
+                                        height: 120,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Icon(Icons.person, size: 60, color: Colors.grey[600]);
+                                        },
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(dapaGreen[500]!),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Icon(Icons.person, size: 60, color: Colors.grey[600]),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: dapaGreen[500],
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(userId, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-
-            _buildProfileInfoRow(Icons.location_on_outlined, '위치', userLocation),
-            // ✅ 매너 온도 아이콘 색상 변경
-            _buildProfileInfoRow(Icons.thermostat_outlined, '매너온도', '${userPoint.toStringAsFixed(1)} °C', color: dapaGreen[700]),
-
-            const Spacer(),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.logout),
-              label: const Text('로그아웃'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent, // ✅ 로그아웃 버튼은 대비되는 빨간색 유지
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+              const SizedBox(height: 24),
+              // 사용자 이름
+              Text(
+                userId,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('로그아웃 기능은 준비 중입니다.')),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 32),
+
+              // 정보 카드
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildProfileInfoRow(Icons.location_on_outlined, '위치', userLocation),
+                    const Divider(height: 32, thickness: 1, color: Colors.grey),
+                    _buildProfileInfoRow(
+                      Icons.thermostat_outlined,
+                      '매너온도',
+                      '${userPoint.toStringAsFixed(1)} °C',
+                      color: dapaGreen[700],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 40),
+              // 로그아웃 버튼
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.logout),
+                  label: const Text('로그아웃'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('로그아웃 기능은 준비 중입니다.')),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -194,29 +271,49 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   // 헬퍼 위젯 함수에 color 매개변수 추가
   Widget _buildProfileInfoRow(IconData icon, String label, String value, {Color? color}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ✅ 아이콘 색상 변경 (초록색 계열이 아니면 회색 유지, 매너온도는 전달된 color 사용)
-          Icon(icon, color: color ?? Colors.grey[700], size: 20),
-          const SizedBox(width: 12),
-          Text(
-            '$label:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: (color ?? Colors.grey[700])!.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.start,
-              overflow: TextOverflow.ellipsis,
-            ),
+          child: Icon(
+            icon,
+            color: color ?? Colors.grey[700],
+            size: 24,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

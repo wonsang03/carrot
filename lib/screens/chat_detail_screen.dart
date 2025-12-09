@@ -92,104 +92,184 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     // 테마 색상 정의 (DapaGreen 사용)
-    final Color myBubbleColor = dapaGreen[300]!; // 밝은 초록색
+    final Color myBubbleColor = dapaGreen[500]!; // 초록색
     final Color opponentBubbleColor = Colors.white; // 상대방 메시지는 흰색
-    final Color myTextColor = Colors.black87; // 내 메시지 글자색
+    final Color myTextColor = Colors.white; // 내 메시지 글자색 (흰색)
     final Color opponentTextColor = Colors.black87; // 상대방 메시지 글자색
 
-
     return Scaffold(
-      // AppBar 배경색은 main.dart의 dapaGreen을 따름
-      appBar: AppBar(title: Text(widget.chatRoom.opponentName)),
-      // 채팅 배경색을 미세하게 조정하여 메시지 버블이 돋보이게 함
-      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text(
+          widget.chatRoom.opponentName,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        elevation: 0,
+      ),
+      backgroundColor: Colors.grey[50],
       body: Column(
         children: [
           Expanded(
             child: _isLoadingMessages
-                ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
-                ? const Center(child: Text('대화를 시작해보세요!'))
-                : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), // ✅ 전체 리스트 패딩
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isCurrentUser = msg.Message_User;
-
-                return Padding( // ✅ 메시지 버블 간의 수직 간격 확보
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Align(
-                    alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      // ✅ 카카오톡처럼 최대 너비를 제한하여 짧은 메시지가 너무 길어지는 것을 방지
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // ✅ 내부 패딩 증가
-                      decoration: BoxDecoration(
-                        color: isCurrentUser ? myBubbleColor : opponentBubbleColor, // ✅ 배경색 적용
-                        borderRadius: BorderRadius.only( // ✅ 말풍선 모양 경계선 설정
-                          topLeft: const Radius.circular(15),
-                          topRight: const Radius.circular(15),
-                          bottomLeft: Radius.circular(isCurrentUser ? 15 : 4), // 내 메시지는 왼쪽 아래 둥글게
-                          bottomRight: Radius.circular(isCurrentUser ? 4 : 15), // 상대 메시지는 오른쪽 아래 둥글게
-                        ),
-                        // ✅ 그림자 추가 (선택 사항, 카카오톡 느낌을 위해 제거 가능)
-                        // boxShadow: [
-                        //   BoxShadow(
-                        //     color: Colors.black.withOpacity(0.05),
-                        //     blurRadius: 1,
-                        //     offset: const Offset(0, 1),
-                        //   ),
-                        // ],
-                      ),
-                      child: Text(
-                        msg.Message_Text,
-                        style: TextStyle(
-                          fontSize: 15, // ✅ 폰트 크기 조정
-                          color: isCurrentUser ? myTextColor : opponentTextColor, // ✅ 폰트 색상 적용
-                        ),
-                      ),
+                ? Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(dapaGreen[500]!),
                     ),
-                  ),
-                );
-              },
-            ),
+                  )
+                : _messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              '대화를 시작해보세요!',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        reverse: false,
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = _messages[index];
+                          final isCurrentUser = msg.Message_User;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              mainAxisAlignment: isCurrentUser
+                                  ? MainAxisAlignment.end
+                                  : MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                if (!isCurrentUser) ...[
+                                  const SizedBox(width: 8),
+                                ],
+                                Flexible(
+                                  child: Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isCurrentUser
+                                          ? myBubbleColor
+                                          : opponentBubbleColor,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: const Radius.circular(16),
+                                        topRight: const Radius.circular(16),
+                                        bottomLeft: Radius.circular(
+                                          isCurrentUser ? 16 : 4,
+                                        ),
+                                        bottomRight: Radius.circular(
+                                          isCurrentUser ? 4 : 16,
+                                        ),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      msg.Message_Text,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: isCurrentUser
+                                            ? myTextColor
+                                            : opponentTextColor,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (isCurrentUser) ...[
+                                  const SizedBox(width: 8),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
           ),
           // 메시지 입력창
-          Container( // ✅ 입력창 영역에 경계선과 배경색을 추가하여 분리
-            padding: const EdgeInsets.all(8.0),
-            color: Colors.white,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      hintText: '메시지 입력...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20), // ✅ 입력창 둥글게
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100], // ✅ 입력창 배경색
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    ),
-                    onSubmitted: _isSendingMessage ? null : (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 전송 버튼은 테마의 primaryColor(초록색)을 따름
-                IconButton(
-                  icon: _isSendingMessage
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.send),
-                  onPressed: _isSendingMessage ? null : _sendMessage,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
                 ),
               ],
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: TextField(
+                          controller: _controller,
+                          maxLines: null,
+                          textInputAction: TextInputAction.send,
+                          decoration: InputDecoration(
+                            hintText: '메시지를 입력하세요...',
+                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                          onSubmitted: _isSendingMessage ? null : (_) => _sendMessage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _isSendingMessage
+                            ? Colors.grey[400]
+                            : dapaGreen[500],
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: _isSendingMessage
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.send, color: Colors.white),
+                        onPressed: _isSendingMessage ? null : _sendMessage,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io'; // ✨ [추가] 파일 처리를 위해 필요
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // ✨ 파일 타입 지정을 위해 필요
 import '../models/product.dart';
@@ -8,8 +9,19 @@ import '../models/chat_message.dart';
 
 
 class ApiService {
-  //static const String baseUrl = 'http://127.0.0.1:5000';
-  static const String baseUrl = 'http://10.0.2.2:5000';
+  // 플랫폼에 따라 서버 URL 자동 설정
+  static String get baseUrl {
+    if (kIsWeb) {
+      // 웹에서는 상대 경로 또는 실제 서버 주소 사용
+      return 'http://127.0.0.1:5000';
+    } else if (Platform.isAndroid) {
+      // 안드로이드 에뮬레이터
+      return 'http://10.0.2.2:5000';
+    } else {
+      // iOS, Windows, Linux, macOS 등
+      return 'http://127.0.0.1:5000';
+    }
+  }
   static const Map<String, String> headers = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -18,14 +30,34 @@ class ApiService {
   // 📋 모든 상품 목록을 서버에서 가져오는 함수
   static Future<List<Product>> fetchProducts() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/products'), headers: headers);
+      print('🔄 서버 연결 시도: $baseUrl/products');
+      final response = await http.get(
+        Uri.parse('$baseUrl/products'),
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('서버 연결 시간이 초과되었습니다. 서버가 실행 중인지 확인해주세요.');
+        },
+      );
+      
+      print('📡 응답 상태 코드: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = json.decode(utf8.decode(response.bodyBytes));
+        print('✅ 상품 ${jsonData.length}개 로드 성공');
         return jsonData.map((json) => Product.fromJson(json)).toList();
       } else {
-        throw Exception('상품 목록을 불러올 수 없습니다.');
+        print('❌ 서버 응답 오류: ${response.statusCode} - ${response.body}');
+        throw Exception('상품 목록을 불러올 수 없습니다. (상태 코드: ${response.statusCode})');
       }
     } catch (e) {
+      print('❌ 상품 로딩 실패: $e');
+      if (e.toString().contains('Failed host lookup') || 
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception('서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.\n\n서버 주소: $baseUrl');
+      }
       throw Exception('서버와 연결할 수 없습니다: $e');
     }
   }
@@ -68,17 +100,36 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchUserProfile(String userId) async {
     try {
       // API 경로: /users/{user_id}
-      final response = await http.get(Uri.parse('$baseUrl/users/$userId'), headers: headers);
+      print('🔄 사용자 프로필 로드 시도: $baseUrl/users/$userId');
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/$userId'),
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('서버 연결 시간이 초과되었습니다.');
+        },
+      );
+
+      print('📡 사용자 프로필 응답 상태 코드: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         // 백엔드가 단일 사용자 객체를 반환하므로 Map<String, dynamic>으로 디코딩
-        return json.decode(utf8.decode(response.bodyBytes));
+        final userData = json.decode(utf8.decode(response.bodyBytes));
+        print('✅ 사용자 프로필 로드 성공');
+        return userData;
       } else if (response.statusCode == 404) {
         throw Exception('사용자 정보를 찾을 수 없습니다.');
       } else {
         throw Exception('사용자 정보를 불러올 수 없습니다: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ 사용자 프로필 로딩 실패: $e');
+      if (e.toString().contains('Failed host lookup') || 
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception('서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.');
+      }
       throw Exception('서버와 연결할 수 없습니다: $e');
     }
   }

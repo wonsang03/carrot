@@ -1,10 +1,12 @@
 // lib/screens/home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/product.dart';
 import '../models/chat_room.dart';
 import '../widget/bottom_nav_bar.dart';
 import '../services/api_service.dart';
+import '../utils/distance_calculator.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
 import 'chat_list_screen.dart';
@@ -28,6 +30,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Product> allProducts = [];
   bool _isLoading = true;
   String? _errorMessage;
+  
+  // 사용자 위치
+  Position? _userPosition;
 
   // 서버에서 받아온 실제 사용자 정보를 저장할 상태 변수
   Map<String, dynamic> _userProfileData = {};
@@ -52,10 +57,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       await Future.wait([
         _loadProducts(),
         _loadUserProfile(),
+        _getUserLocation(), // 사용자 위치 가져오기
       ]);
+      
+      // 사용자 위치가 있으면 거리순으로 정렬
+      if (_userPosition != null) {
+        allProducts = DistanceCalculator.sortByDistance(
+          allProducts,
+          _userPosition!.latitude,
+          _userPosition!.longitude,
+        );
+      }
     } catch (e) {
+      print('❌ 데이터 초기화 실패: $e');
       setState(() {
-        _errorMessage = '데이터를 불러오는 데 실패했습니다.\\n서버가 켜져있는지 확인해주세요.';
+        _errorMessage = '데이터를 불러오는 데 실패했습니다.\n서버가 켜져있는지 확인해주세요.\n\n오류: $e';
       });
       allProducts = [];
       _userProfileData = {};
@@ -65,10 +81,59 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _isLoading = false;
     });
   }
+  
+  // 사용자 위치 가져오기
+  Future<void> _getUserLocation() async {
+    try {
+      // 위치 서비스 활성화 여부 확인
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('⚠️ 위치 서비스가 비활성화되어 있습니다.');
+        return;
+      }
+
+      // 위치 권한 확인
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('⚠️ 위치 권한이 거부되었습니다.');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        print('⚠️ 위치 권한이 영구적으로 거부되었습니다.');
+        return;
+      }
+
+      // 현재 위치 가져오기
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      
+      setState(() {
+        _userPosition = position;
+      });
+      
+      print('✅ 사용자 위치: ${position.latitude}, ${position.longitude}');
+    } catch (e) {
+      print('❌ 위치 가져오기 실패: $e');
+    }
+  }
 
   Future<void> _loadProducts() async {
     try {
       allProducts = await ApiService.fetchProducts();
+      
+      // 사용자 위치가 있으면 거리순으로 정렬
+      if (_userPosition != null) {
+        allProducts = DistanceCalculator.sortByDistance(
+          allProducts,
+          _userPosition!.latitude,
+          _userPosition!.longitude,
+        );
+      }
     } catch (e) {
       print('상품 로딩 실패: $e');
       throw Exception('상품 로딩 실패');
@@ -196,10 +261,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Widget _buildCurrentScreen() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('서버에서 데이터를 불러오는 중...'),
+          ],
+        ),
+      );
     }
     if (_errorMessage != null) {
-      return Center(child: Text(_errorMessage!));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _initializeData();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     List<Product> productsToShow = allProducts;
@@ -228,12 +326,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       backgroundColor: Colors.grey[50],
       appBar: _currentIndex == 0
           ? AppBar(
-        elevation: 1,
+        elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text('대파마켓', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          '대파마켓',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
+        ),
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: _navigateToSearch),
-          IconButton(icon: const Icon(Icons.notifications), onPressed: _showNotificationDialog),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _navigateToSearch,
+            tooltip: '검색',
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: _showNotificationDialog,
+            tooltip: '알림',
+          ),
         ],
       )
           : null,

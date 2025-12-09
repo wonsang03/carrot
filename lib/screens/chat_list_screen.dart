@@ -68,14 +68,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final double avatarRadius = 37.5;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('대파마켓 채팅', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
+        title: const Text('채팅', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
         actions: [
-          // [디버깅용] 새로고침 버튼 추가
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshChatRooms,
+            tooltip: '새로고침',
           )
         ],
       ),
@@ -83,112 +84,192 @@ class _ChatListScreenState extends State<ChatListScreen> {
         future: futureChatRooms,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(dapaGreen[500]!),
+              ),
+            );
           } else if (snapshot.hasError) {
-            return Center(child: Text('오류가 발생했습니다: ${snapshot.error}'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    '오류가 발생했습니다',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
           } else if (snapshot.hasData) {
             final chatRooms = snapshot.data!;
             if (chatRooms.isEmpty) {
-              return const Center(child: Text('참여 중인 채팅방이 없습니다.'));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      '참여 중인 채팅방이 없습니다',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              );
             }
 
-            return ListView.builder(
-              itemCount: chatRooms.length,
-              itemBuilder: (context, i) {
-                final room = chatRooms[i];
-                // 안 읽은 메시지 확인 (0보다 크면 true)
-                final hasUnread = room.Chat_UnreadCount > 0;
-                final formattedTime = _formatTime(room.Chat_Time);
+            return RefreshIndicator(
+              onRefresh: () async {
+                _refreshChatRooms();
+                await futureChatRooms;
+              },
+              color: dapaGreen[500],
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: chatRooms.length,
+                itemBuilder: (context, i) {
+                  final room = chatRooms[i];
+                  final hasUnread = room.Chat_UnreadCount > 0;
+                  final formattedTime = _formatTime(room.Chat_Time);
 
-                final leadingWidget = CircleAvatar(
-                  radius: avatarRadius,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: room.Chat_AvatarUrl.isNotEmpty
-                      ? NetworkImage(room.Chat_AvatarUrl)
-                      : null as ImageProvider<Object>?,
-                  child: room.Chat_AvatarUrl.isEmpty
-                      ? Icon(Icons.person, color: Colors.grey, size: avatarRadius * 0.8)
-                      : null,
-                );
-
-                return Column(
-                  children: [
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      leading: leadingWidget,
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () async {
+                          widget.onRoomTap(room, myUserId);
+                          _refreshChatRooms();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  room.opponentName,
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
+                              // 프로필 이미지
+                              Stack(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: Colors.grey[200],
+                                    backgroundImage: room.Chat_AvatarUrl.isNotEmpty
+                                        ? NetworkImage(room.Chat_AvatarUrl)
+                                        : null,
+                                    child: room.Chat_AvatarUrl.isEmpty
+                                        ? Icon(Icons.person, color: Colors.grey[600], size: 28)
+                                        : null,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                  if (hasUnread)
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
-                              // 시간 표시 (우측 상단)
-                              Text(
-                                formattedTime,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
+                              const SizedBox(width: 16),
+                              // 채팅 정보
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            room.opponentName,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: hasUnread ? Colors.black87 : Colors.black87,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Text(
+                                          formattedTime,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            room.Chat_LastMessage,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[700],
+                                              fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (hasUnread) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.redAccent,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              room.Chat_UnreadCount.toString(),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            room.Chat_LastMessage,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[700],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                        ),
                       ),
-                      // Trailing에 안 읽은 메시지 카운트 배지 표시
-                      trailing: hasUnread 
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: const BoxDecoration(
-                                color: Colors.redAccent,
-                                borderRadius: BorderRadius.all(Radius.circular(12)),
-                              ),
-                              child: Text(
-                                room.Chat_UnreadCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(), // 없으면 빈 공간
-                      
-                      onTap: () async {
-                        widget.onRoomTap(room, myUserId);
-                        // 갔다 오면 목록 새로고침
-                        _refreshChatRooms();
-                      },
                     ),
-                    Divider(
-                      height: 1,
-                      thickness: 0.8,
-                      color: Colors.grey.shade300,
-                      indent: 16 + avatarRadius * 2 + 16,
-                      endIndent: 16,
-                    ),
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             );
           } else {
             return const Center(child: Text('채팅방이 없습니다.'));

@@ -51,19 +51,55 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
           color: dapaGreen[500],
           foregroundColor: Colors.white, // AppBar 글자 및 아이콘 색상
+          elevation: 0,
+          titleTextStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+          ),
         ),
         // ✅ 버튼 테마 설정 (ElevatedButton)
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: dapaGreen[500],
             foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         // ✅ 텍스트 버튼 및 기타 액션 색상 설정
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: dapaGreen[700], // 텍스트 버튼 색상
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
+        ),
+        // ✅ 텍스트 테마 통일
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black87),
+          displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+          displaySmall: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+          headlineLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+          headlineSmall: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+          titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black87),
+          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+          titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+          bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: Colors.black87, height: 1.5),
+          bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.black87, height: 1.5),
+          bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Colors.grey, height: 1.4),
+          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
+          labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey),
+          labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.grey),
         ),
       ),
       // HomePage는 StatefulWidget이므로 const를 붙이지 않습니다.
